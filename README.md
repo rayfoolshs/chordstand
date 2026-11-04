@@ -1,5 +1,7 @@
 # Chordstand
 
+**Live:** https://rayfoolshs.github.io/chordstand/
+
 A local-first chord chart and set list app for working musicians. Built as a better-behaved alternative to OnSong for a band that already has a big `.onsong` library.
 
 - **Import-first**: drop in a zip of `.onsong` files, ChordPro, plain text, or paste a chart. Review every song before it is saved.
@@ -21,7 +23,16 @@ npm run build      # production build in dist/
 npm run preview    # serve the production build
 ```
 
-Deploy `dist/` to any static host (Cloudflare Pages, Netlify, Vercel, GitHub Pages at a domain root). The service worker, manifest and icons expect to live at `/`. HTTPS is required for PWA installation and wake lock.
+Deploy `dist/` to any static host (Cloudflare Pages, Netlify, Vercel, GitHub Pages at a domain root). The service worker, manifest and icons follow Vite's base path, so both root hosting and a GitHub Pages project subpath such as `/chordstand/` work. HTTPS is required for PWA installation, wake lock and camera QR scanning.
+
+This repo deploys itself to GitHub Pages on every push to `main` via `.github/workflows/deploy.yml`. The workflow sets `PAGES_BASE` to the repository name, runs the tests, builds, and publishes `dist/`.
+
+## Documentation
+
+- [Build plan](docs/BUILD_PLAN.md) — scope, milestones, current status, risks.
+- [Architecture](docs/ARCHITECTURE.md) — data model, import/parser pipeline, sync protocol, theme engine.
+- [Testing](docs/TESTING.md) — automated coverage, manual QA, two-device mirroring checklist.
+- [Design decisions](docs/DECISIONS.md) — why local-first, WebRTC pairing, and no Ultimate Guitar scraping.
 
 ### Install on iPad
 

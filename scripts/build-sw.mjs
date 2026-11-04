@@ -13,7 +13,7 @@ if (!existsSync(assetsDir)) {
 
 const assets = readdirSync(assetsDir)
   .filter((file) => !file.endsWith('.map'))
-  .map((file) => `/assets/${file}`)
+  .map((file) => `assets/${file}`)
 
 const template = readFileSync(resolve(root, 'public/sw.js'), 'utf8')
 const marker = 'const PRECACHE_ASSETS = []'

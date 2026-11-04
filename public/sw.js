@@ -1,13 +1,21 @@
-const CACHE = 'chordstand-v4'
-const SHELL = ['/', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png', '/icons/icon-180.png']
+const CACHE = 'chordstand-v5'
+const ROOT = new URL('./', self.location.href).pathname
+const SHELL = [
+  ROOT,
+  `${ROOT}manifest.webmanifest`,
+  `${ROOT}icons/icon.svg`,
+  `${ROOT}icons/icon-192.png`,
+  `${ROOT}icons/icon-180.png`,
+]
 // Replaced with the hashed build output by scripts/build-sw.mjs.
 const PRECACHE_ASSETS = []
+const PRECACHE = PRECACHE_ASSETS.map((asset) => `${ROOT}${asset.replace(/^\.?\//, '')}`)
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(CACHE)
-      .then((cache) => cache.addAll([...SHELL, ...PRECACHE_ASSETS]))
+      .then((cache) => cache.addAll([...SHELL, ...PRECACHE]))
       .catch(() => undefined)
       .then(() => self.skipWaiting()),
   )
@@ -34,15 +42,15 @@ self.addEventListener('fetch', (event) => {
       fetch(request)
         .then((response) => {
           if (!response.ok && response.status >= 500) {
-            return caches.match('/', { ignoreVary: true }).then((cached) => cached || response)
+            return caches.match(ROOT, { ignoreVary: true }).then((cached) => cached || response)
           }
           if (response.ok) {
             const copy = response.clone()
-            void caches.open(CACHE).then((cache) => cache.put('/', copy))
+            void caches.open(CACHE).then((cache) => cache.put(ROOT, copy))
           }
           return response
         })
-        .catch(() => caches.match('/', { ignoreVary: true }).then((cached) => cached || Response.error())),
+        .catch(() => caches.match(ROOT, { ignoreVary: true }).then((cached) => cached || Response.error())),
     )
     return
   }
