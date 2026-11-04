@@ -41,7 +41,9 @@ In OnSong on the iPad:
 
 5. In Chordstand, open **Import** and drop the zip. Every chart is parsed into a preview with warnings, duplicates already unchecked, and PDFs listed as skipped.
 
-For a full library, OnSong's **Backup** (gear → Backup) works too. If it produces a folder, zip it first. Chordstand's own **Library → Download full backup** produces a zip that can be restored directly from the Import screen.
+**Or drop an OnSong `.backup` file directly.** OnSong backups are ZIP archives containing `OnSong.sqlite3`, so Chordstand reads the database, recovers songs with their metadata, and rebuilds set lists. Media, PDFs and audio inside the backup are ignored for now. In OnSong: gear → **Backup** → save to Files/Dropbox, then drop the `.backup` into Chordstand.
+
+If a backup uses a database layout Chordstand does not recognise, the preview reports the table names it found — send me that line and I can add the mapping. OnSong's closed `.onsongarchive` format is not supported; use **Backup** or **Export** instead.
 
 Supported inputs:
 
@@ -51,6 +53,7 @@ Supported inputs:
 | `.chordpro` `.cho` `.crd` `.pro` | `{title:}`, `{start_of_chorus}`, `{comment:}`, inline transpose |
 | `.txt` | Same parser; title falls back to the first line or filename |
 | `.zip` | Any mix of the above, including folder hierarchies |
+| `.backup` | OnSong backup archive; reads `OnSong.sqlite3` and rebuilds songs and set lists |
 | `.json` | A Chordstand backup file |
 
 PDFs and scanned images are **not** supported yet. Inline `{key:}` and `{capo:}` directives are preserved in the source text but are not applied mid-chart.

@@ -26,6 +26,9 @@ interface AppState {
   renameSetlist: (id: string, name: string) => Promise<void>
   deleteSetlist: (id: string) => Promise<void>
   addToSetlist: (setlistId: string, songId: string) => Promise<void>
+  importSetlists: (
+    defs: Array<{ name: string; songs: Array<{ title: string; artist: string }> }>,
+  ) => Promise<number>
   removeEntry: (setlistId: string, entryId: string) => Promise<void>
   moveEntry: (setlistId: string, entryId: string, direction: -1 | 1) => Promise<void>
   updateEntry: (setlistId: string, entryId: string, patch: Partial<SetlistEntry>) => Promise<void>
@@ -141,6 +144,42 @@ export const useStore = create<AppState>((set, get) => ({
     const updated = { ...setlist, entries: [...setlist.entries, entry], updatedAt: Date.now() }
     await db.setlists.put(updated)
     set({ setlists: sortSetlists(get().setlists.map((item) => (item.id === setlistId ? updated : item))) })
+  },
+
+  importSetlists: async (defs) => {
+    const songs = get().songs
+    const normalise = (value: string) => value.trim().toLowerCase()
+    const now = Date.now()
+    const created: Setlist[] = []
+
+    defs.forEach((def, index) => {
+      const entries: SetlistEntry[] = []
+      def.songs.forEach((item) => {
+        const title = normalise(item.title)
+        const artist = normalise(item.artist)
+        const song =
+          songs.find(
+            (candidate) =>
+              normalise(candidate.title) === title &&
+              (!artist || normalise(candidate.artist) === artist),
+          ) ?? songs.find((candidate) => normalise(candidate.title) === title)
+        if (song) entries.push({ id: uid('entry-'), songId: song.id })
+      })
+
+      if (!entries.length) return
+      created.push({
+        id: uid('set-'),
+        name: def.name.trim() || `Imported set ${index + 1}`,
+        entries,
+        createdAt: now + created.length,
+        updatedAt: now,
+      })
+    })
+
+    if (!created.length) return 0
+    await db.setlists.bulkPut(created)
+    set({ setlists: sortSetlists([...get().setlists, ...created]) })
+    return created.length
   },
 
   removeEntry: async (setlistId, entryId) => {

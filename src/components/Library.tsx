@@ -108,7 +108,7 @@ export function Library({
             <h1>Chordstand</h1>
             <p>
               {songs.length} {songs.length === 1 ? 'song' : 'songs'}
-              {setlists.length ? ` · ${setlists.length} sets` : ''}
+              {setlists.length ? ` · ${setlists.length} ${setlists.length === 1 ? 'set' : 'sets'}` : ''}
             </p>
           </div>
         </div>

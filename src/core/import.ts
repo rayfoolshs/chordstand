@@ -1,6 +1,7 @@
 import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate'
 import type { ImportCandidate, Setlist, Song, SongFormat } from './types'
 import { parseSong, songToOnsong } from './parser'
+import type { BackupSetlistDraft, OnSongBackupResult } from './onsongBackup'
 
 const TEXT_EXTENSIONS = new Set(['onsong', 'txt', 'text', 'chordpro', 'chopro', 'cho', 'crd', 'pro', 'chord'])
 
@@ -13,6 +14,8 @@ export interface ImportResult {
   candidates: ImportCandidate[]
   issues: ImportIssue[]
   backup?: BackupBundle
+  onsongNotes?: string[]
+  onsongSetlists?: BackupSetlistDraft[]
 }
 
 export interface BackupBundle {
@@ -68,6 +71,17 @@ export async function readImportFiles(files: File[], existing: Song[] = []): Pro
   const candidates: ImportCandidate[] = []
   const issues: ImportIssue[] = []
   let backup: BackupBundle | undefined
+  const onsongNotes: string[] = []
+  let onsongSetlists: BackupSetlistDraft[] = []
+
+  const absorbOnSongBackup = (result: OnSongBackupResult) => {
+    result.songs.forEach((draft) => {
+      const fileName = `${draft.title || 'song'}.onsong`
+      candidates.push(candidateFromText(fileName, draft.source, existing))
+    })
+    onsongNotes.push(...result.notes)
+    onsongSetlists = [...onsongSetlists, ...result.setlists]
+  }
 
   const readBackup = (name: string, bytes: Uint8Array): boolean => {
     try {
@@ -83,9 +97,40 @@ export async function readImportFiles(files: File[], existing: Song[] = []): Pro
     return false
   }
 
-  const handleEntry = (name: string, bytes: Uint8Array) => {
+  const handleEntry = async (name: string, bytes: Uint8Array) => {
     const extension = extensionOf(name)
-    if (extension === 'zip') {
+    const isBackup = extension === 'backup' || extension === 'onsongbackup'
+
+    if (isBackup) {
+      const { readOnSongBackup } = await import('./onsongBackup')
+      const result = await readOnSongBackup(bytes)
+      if (result?.songs.length) {
+        absorbOnSongBackup(result)
+        return
+      }
+      if (result) {
+        // The database was readable but had no chart text; still import any
+        // .onsong files that came along in the archive.
+        onsongNotes.push(...result.notes)
+      } else {
+        issues.push({
+          fileName: name,
+          message:
+            'This does not look like an OnSong backup (no OnSong.sqlite3 inside). Export songs as .onsong files instead.',
+        })
+      }
+    }
+
+    if (extension === 'onsongarchive') {
+      issues.push({
+        fileName: name,
+        message:
+          'OnSong Archive (.onsongarchive) is a closed binary format. Use OnSong Backup (.backup) or export songs as .onsong.',
+      })
+      return
+    }
+
+    if (extension === 'zip' || isBackup) {
       try {
         const entries = unzipSync(bytes)
         const backupEntry = Object.entries(entries).find(([entryName]) =>
@@ -95,19 +140,33 @@ export async function readImportFiles(files: File[], existing: Song[] = []): Pro
         // importing its .onsong files a second time.
         if (backupEntry && readBackup(backupEntry[0], backupEntry[1])) return
 
-        Object.entries(entries).forEach(([entryName, entryBytes]) => {
-          if (entryName.endsWith('/')) return
-          if (entryName.includes('__MACOSX')) return
+        const hasOnSongDatabase = Object.entries(entries).some(
+          ([entryName, entryBytes]) => /\.(sqlite3?|db)$/i.test(entryName) && entryBytes.length > 100,
+        )
+        if (hasOnSongDatabase && !isBackup) {
+          const { readOnSongBackup } = await import('./onsongBackup')
+          const result = await readOnSongBackup(bytes)
+          if (result?.songs.length) {
+            absorbOnSongBackup(result)
+            return
+          }
+          if (result) onsongNotes.push(...result.notes)
+        }
+
+        for (const [entryName, entryBytes] of Object.entries(entries)) {
+          if (entryName.endsWith('/')) continue
+          if (entryName.includes('__MACOSX')) continue
+          if (/\.(sqlite3?|db)$/i.test(entryName)) continue
           const entryExtension = extensionOf(entryName)
           if (TEXT_EXTENSIONS.has(entryExtension)) {
-            handleEntry(entryName, entryBytes)
+            await handleEntry(entryName, entryBytes)
           } else if (entryExtension === 'pdf' || entryExtension === 'rtf' || entryExtension === 'docx') {
             issues.push({
               fileName: entryName,
               message: 'PDF and document charts are not supported yet — text charts only in this build.',
             })
           }
-        })
+        }
       } catch {
         issues.push({ fileName: name, message: 'Could not open this zip archive.' })
       }
@@ -142,10 +201,16 @@ export async function readImportFiles(files: File[], existing: Song[] = []): Pro
 
   for (const file of files) {
     const bytes = new Uint8Array(await file.arrayBuffer())
-    handleEntry(file.name, bytes)
+    await handleEntry(file.name, bytes)
   }
 
-  return { candidates, issues, backup }
+  return {
+    candidates,
+    issues,
+    backup,
+    onsongNotes: onsongNotes.length ? onsongNotes : undefined,
+    onsongSetlists: onsongSetlists.length ? onsongSetlists : undefined,
+  }
 }
 
 export function songFromCandidate(candidate: ImportCandidate, now = Date.now()): Song {

@@ -8,10 +8,13 @@ export function ImportView({ onBack, onDone }: { onBack: () => void; onDone: () 
   const songs = useStore((state) => state.songs)
   const addSongs = useStore((state) => state.addSongs)
   const restoreBackup = useStore((state) => state.restoreBackup)
+  const importSetlists = useStore((state) => state.importSetlists)
 
   const [candidates, setCandidates] = useState<ImportCandidate[]>([])
   const [issues, setIssues] = useState<ImportIssue[]>([])
   const [backup, setBackup] = useState<ImportResult['backup']>()
+  const [notes, setNotes] = useState<string[]>([])
+  const [setlistsToImport, setSetlistsToImport] = useState<ImportResult['onsongSetlists']>([])
   const [paste, setPaste] = useState('')
   const [busy, setBusy] = useState(false)
   const [dragging, setDragging] = useState(false)
@@ -27,6 +30,8 @@ export function ImportView({ onBack, onDone }: { onBack: () => void; onDone: () 
       setCandidates((current) => [...current, ...result.candidates])
       setIssues((current) => [...current, ...result.issues])
       if (result.backup) setBackup(result.backup)
+      if (result.onsongNotes) setNotes((current) => [...current, ...result.onsongNotes!])
+      if (result.onsongSetlists) setSetlistsToImport((current) => [...(current ?? []), ...result.onsongSetlists!])
     } finally {
       setBusy(false)
     }
@@ -47,6 +52,9 @@ export function ImportView({ onBack, onDone }: { onBack: () => void; onDone: () 
     setImporting(true)
     try {
       await addSongs(selected.map((candidate) => songFromCandidate(candidate)))
+      if (setlistsToImport?.length) {
+        await importSetlists(setlistsToImport)
+      }
       onDone()
     } finally {
       setImporting(false)
@@ -85,6 +93,25 @@ export function ImportView({ onBack, onDone }: { onBack: () => void; onDone: () 
       </header>
 
       <div className="import-body">
+        {notes.length > 0 && (
+          <div className="restore-card">
+            <div>
+              <strong>OnSong backup detected</strong>
+              {notes.map((note) => (
+                <p className="muted small" key={note}>
+                  {note}
+                </p>
+              ))}
+              {setlistsToImport && setlistsToImport.length > 0 ? (
+                <p className="muted small">
+                  {setlistsToImport.length} set {setlistsToImport.length === 1 ? 'list' : 'lists'} will be
+                  recreated from the imported songs.
+                </p>
+              ) : null}
+            </div>
+          </div>
+        )}
+
         {backup && (
           <div className="restore-card">
             <div>
@@ -130,9 +157,10 @@ export function ImportView({ onBack, onDone }: { onBack: () => void; onDone: () 
           <div className="drop-icon">
             <Icon name="upload" size={28} />
           </div>
-          <h2>Drop your charts here</h2>
+          <h2>Drop an OnSong backup or a chart</h2>
           <p>
-            A zip of <code>.onsong</code> files is best. Plain text, ChordPro and OnSong files work too. Nothing is
+            OnSong <code>.backup</code> files work directly — songs and set lists are read from the database
+            inside. You can also drop a zip of <code>.onsong</code> files, ChordPro, or plain text. Nothing is
             saved until you review the preview.
           </p>
           <button className="ghost-button" onClick={() => inputRef.current?.click()} disabled={busy}>
@@ -142,7 +170,7 @@ export function ImportView({ onBack, onDone }: { onBack: () => void; onDone: () 
             ref={inputRef}
             type="file"
             multiple
-            accept=".onsong,.txt,.text,.chordpro,.chopro,.cho,.crd,.pro,.chord,.zip,.json,text/plain,application/zip,application/json"
+            accept=".backup,.onsong,.txt,.text,.chordpro,.chopro,.cho,.crd,.pro,.chord,.zip,.json,text/plain,application/zip,application/json"
             onChange={(event) => {
               if (event.target.files) void handleFiles(event.target.files)
               event.target.value = ''
