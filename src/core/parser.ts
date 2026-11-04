@@ -157,14 +157,19 @@ function parseHeader(lines: string[], fallbackTitle: string): HeaderResult {
   const custom: Record<string, string> = {}
   const warnings: string[] = []
 
-  // ChordPro metadata can appear as directives anywhere in the file.
+  // ChordPro metadata lives at the top of the file. Stop at the first blank
+  // line or the first body directive so mid-song {key:} changes cannot
+  // overwrite the song's real key.
   for (const line of lines) {
-    const directive = line.trim().match(DIRECTIVE_RE)
-    if (!directive) continue
-    const name = normaliseTag(directive[1])
-    if (CANONICAL_KEYS[name]) {
-      assignMeta(meta, custom, directive[1], directive[2] ?? '', warnings)
+    const trimmedLine = line.trim()
+    const directive = trimmedLine.match(DIRECTIVE_RE)
+    if (!directive) {
+      if (!trimmedLine) break
+      continue
     }
+    const name = normaliseTag(directive[1])
+    if (!CANONICAL_KEYS[name]) break
+    assignMeta(meta, custom, directive[1], directive[2] ?? '', warnings)
   }
 
   // OnSong metadata lives in the first section: name/value pairs before the

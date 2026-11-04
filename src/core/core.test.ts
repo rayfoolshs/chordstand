@@ -114,6 +114,16 @@ How sweet the sound`)
     expect(result.lines.every((line) => line.kind === 'lyric')).toBe(true)
   })
 
+  it('does not let an inline key change overwrite the song key', () => {
+    const result = parseSong(`Key: G
+
+[G]Verse one
+{key: A}
+[A]Verse two`)
+    expect(result.meta.key).toBe('G')
+    expect(result.warnings.some((warning) => warning.includes('inline') || warning.includes('Mid-song'))).toBe(true)
+  })
+
   it('detects a key from the first chord when metadata is missing', () => {
     const result = parseSong(`[Em]Hello [C]world`)
     expect(result.meta.key).toBe('Em')
