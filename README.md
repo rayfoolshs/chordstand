@@ -142,22 +142,30 @@ src/
     parser.ts       OnSong + ChordPro parsing, key detection, round-trip export
     chords.ts       chord/key parsing, transposition, capo maths
     import.ts       zip/text reading, duplicate detection, backup export
+    onsongBackup.ts OnSong.sqlite3 extraction (lazy sql.js)
+    ug.ts           Ultimate Guitar paste cleanup and search URL
     demo.ts         two public-domain demo charts
-    core.test.ts    parser and transposer tests
-  store/
-    db.ts           Dexie / IndexedDB schema
-    useStore.ts     songs, set lists, navigation
-    useSettings.ts  persisted stage preferences
+  sync/
+    protocol.ts     S2S message types + compressed pairing codes
+    SyncSession.ts  WebRTC peer connection and data channel
+    mirror.ts       snapshot merge, live diff, view sync
+    manager.ts      host/join flow
+  store/            Dexie schema, app store, settings, theme engine
   hooks/
     useStage.ts     autoscroll, wake lock, fullscreen, pedal hotkeys
-  components/       Library, SongView, Setlists, ImportView, editor, modals
+  components/       Library, SongView, Setlists, ImportView, sync dialog, editors
+docs/               build plan, architecture, testing, decisions
+.github/            GitHub Pages workflow
 ```
 
 The parser keeps each song's raw source text, so export is lossless even for constructs the renderer does not understand yet. Rendering parses on demand and applies transposition at display time, which means key changes never rewrite the chart.
 
 ## Known limitations
 
-- PDF/image charts, backing tracks, MIDI, projection and cloud sync are not implemented.
+- PDF/image charts, backing tracks, MIDI and projection are not implemented.
+- Mirroring is two-device and LAN-only. It needs camera/local-network permission for QR pairing, and the live ICE path still needs verification on two physical devices (see [Testing](docs/TESTING.md)).
+- Mirroring conflicts are last-write-wins; a song deleted offline can be reintroduced by a peer's snapshot.
+- Ultimate Guitar cannot be fetched automatically for legal and technical reasons; the app links to their search and imports what you copy.
 - Inline `{key:}` / `{capo:}` changes are stored but ignored while rendering.
 - Chords-over-lyrics alignment is column-based, exactly like OnSong. Sloppy spacing in the source will show up as sloppy alignment.
 - Fullscreen is desktop-only; iOS Safari does not expose the Fullscreen API for non-video content.
@@ -165,8 +173,10 @@ The parser keeps each song's raw source text, so export is lossless even for con
 
 ## Roadmap
 
-1. PDF charts with page-turn and crop.
-2. Song editor improvements: chord picker, repeat/bar shorthand, section reordering via Flow.
-3. Band sharing: export a "band pack" (songs + set list) and optional real-time sync.
-4. Backing tracks, click, and set-list auto-advance.
-5. External display / projector output.
+1. Verify and harden two-device mirroring on physical iPads (reconnect, tombstones, conflict review).
+2. PDF charts with page-turn and crop.
+3. Song editor improvements: chord picker, repeat/bar shorthand, section reordering via Flow.
+4. Library virtualization and a 2,000-song performance pass.
+5. Backing tracks, click, and set-list auto-advance.
+6. External display / projector output.
+7. Optional hosted relay for cross-network mirroring and >2 devices.
