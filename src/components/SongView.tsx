@@ -291,6 +291,15 @@ export function SongView({
           <button className="icon-btn" onClick={toggleFullscreen} aria-label="Fullscreen">
             <Icon name="expand" />
           </button>
+
+          <button
+            className="icon-btn"
+            onClick={settings.toggleAppearance}
+            aria-label={settings.appearance >= 50 ? 'Switch to night mode' : 'Switch to daylight mode'}
+            title={settings.appearance >= 50 ? 'Switch to night mode' : 'Switch to daylight mode'}
+          >
+            <Icon name={settings.appearance >= 50 ? 'moon' : 'sun'} />
+          </button>
         </div>
       )}
 

@@ -1,17 +1,17 @@
 import { create } from 'zustand'
 
-export type Theme = 'night' | 'day'
-
 interface SettingsState {
   fontSize: number
-  theme: Theme
+  /** 0 = night stage, 100 = daylight. */
+  appearance: number
   showChords: boolean
   showControls: boolean
   songKeys: Record<string, string>
   songCapos: Record<string, number>
   scrollSpeeds: Record<string, number>
   setFontSize: (size: number) => void
-  setTheme: (theme: Theme) => void
+  setAppearance: (value: number) => void
+  toggleAppearance: () => void
   toggleChords: () => void
   toggleControls: () => void
   rememberKey: (songId: string, key: string) => void
@@ -23,7 +23,9 @@ const STORAGE_KEY = 'chordstand.settings.v1'
 
 interface Persisted {
   fontSize?: number
-  theme?: Theme
+  appearance?: number
+  /** Older builds stored a two-state theme. */
+  theme?: 'night' | 'day'
   showChords?: boolean
   showControls?: boolean
   songKeys?: Record<string, string>
@@ -45,7 +47,12 @@ const restored = readSettings()
 
 export const useSettings = create<SettingsState>((set) => ({
   fontSize: restored.fontSize ?? 22,
-  theme: restored.theme ?? 'night',
+  appearance:
+    typeof restored.appearance === 'number'
+      ? clamp(restored.appearance, 0, 100)
+      : restored.theme === 'day'
+        ? 100
+        : 0,
   showChords: restored.showChords ?? true,
   showControls: restored.showControls ?? true,
   songKeys: restored.songKeys ?? {},
@@ -53,7 +60,8 @@ export const useSettings = create<SettingsState>((set) => ({
   scrollSpeeds: restored.scrollSpeeds ?? {},
 
   setFontSize: (fontSize) => set({ fontSize: clamp(fontSize, 14, 56) }),
-  setTheme: (theme) => set({ theme }),
+  setAppearance: (appearance) => set({ appearance: clamp(appearance, 0, 100) }),
+  toggleAppearance: () => set((state) => ({ appearance: state.appearance >= 50 ? 0 : 100 })),
   toggleChords: () => set((state) => ({ showChords: !state.showChords })),
   toggleControls: () => set((state) => ({ showControls: !state.showControls })),
   rememberKey: (songId, key) =>
@@ -68,7 +76,7 @@ useSettings.subscribe((state) => {
   try {
     const payload: Persisted = {
       fontSize: state.fontSize,
-      theme: state.theme,
+      appearance: state.appearance,
       showChords: state.showChords,
       showControls: state.showControls,
       songKeys: state.songKeys,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { ImportView } from './components/ImportView'
 import { Library } from './components/Library'
 import { SetlistDetail } from './components/SetlistDetail'
@@ -6,6 +6,7 @@ import { Setlists } from './components/Setlists'
 import { SongView } from './components/SongView'
 import { EntryEditor } from './components/EntryEditor'
 import { useSettings } from './store/useSettings'
+import { applyAppearance } from './store/theme'
 import { useStore } from './store/useStore'
 import { Icon } from './components/Icon'
 
@@ -18,7 +19,7 @@ export default function App() {
   const setError = useStore((state) => state.setError)
   const load = useStore((state) => state.load)
   const navigate = useStore((state) => state.navigate)
-  const theme = useSettings((state) => state.theme)
+  const appearance = useSettings((state) => state.appearance)
 
   const [editor, setEditor] = useState<{ setlistId: string; entryId: string } | null>(null)
 
@@ -26,9 +27,9 @@ export default function App() {
     void load()
   }, [load])
 
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme
-  }, [theme])
+  useLayoutEffect(() => {
+    applyAppearance(appearance)
+  }, [appearance])
 
   if (!loaded) {
     return (

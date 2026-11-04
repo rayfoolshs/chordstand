@@ -12,6 +12,7 @@ import {
 } from '../core/import'
 import { songToOnsong } from '../core/parser'
 import { useSettings } from '../store/useSettings'
+import { appearanceLabel } from '../store/theme'
 import { useStore } from '../store/useStore'
 import { Icon } from './Icon'
 import { Modal } from './Modal'
@@ -120,6 +121,14 @@ export function Library({
           <button className="primary-button" onClick={onImport}>
             <Icon name="upload" size={18} />
             Import
+          </button>
+          <button
+            className="icon-btn appearance-toggle"
+            onClick={settings.toggleAppearance}
+            aria-label={settings.appearance >= 50 ? 'Switch to night mode' : 'Switch to daylight mode'}
+            title={settings.appearance >= 50 ? 'Switch to night mode' : 'Switch to daylight mode'}
+          >
+            <Icon name={settings.appearance >= 50 ? 'moon' : 'sun'} />
           </button>
           <button className="icon-btn" onClick={() => setLibraryMenu(true)} aria-label="Library menu">
             <Icon name="more" />
@@ -344,17 +353,37 @@ export function Library({
             <Icon name="download" size={18} />
             Download full backup
           </button>
-          <div className="sheet-row static">
-            <Icon name={settings.theme === 'night' ? 'sliders' : 'check'} size={18} />
-            <span>Appearance</span>
-            <select
-              className="compact-select"
-              value={settings.theme}
-              onChange={(event) => settings.setTheme(event.target.value as 'night' | 'day')}
-            >
-              <option value="night">Night stage</option>
-              <option value="day">Daylight</option>
-            </select>
+          <div className="appearance-card">
+            <div className="appearance-head">
+              <span className="sheet-label">Appearance</span>
+              <span className="appearance-value">{appearanceLabel(settings.appearance)}</span>
+            </div>
+            <div className="appearance-row">
+              <button
+                className="appearance-end"
+                onClick={() => settings.setAppearance(0)}
+                aria-label="Night mode"
+              >
+                <Icon name="moon" size={18} />
+              </button>
+              <input
+                className="appearance-slider"
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={settings.appearance}
+                onChange={(event) => settings.setAppearance(Number(event.target.value))}
+                aria-label="Appearance between night and daylight"
+              />
+              <button
+                className="appearance-end"
+                onClick={() => settings.setAppearance(100)}
+                aria-label="Daylight mode"
+              >
+                <Icon name="sun" size={18} />
+              </button>
+            </div>
           </div>
           <button className="sheet-row" onClick={addDemo}>
             <Icon name="music" size={18} />

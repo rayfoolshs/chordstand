@@ -5,6 +5,7 @@ A local-first chord chart and set list app for working musicians. Built as a bet
 - **Import-first**: drop in a zip of `.onsong` files, ChordPro, plain text, or paste a chart. Review every song before it is saved.
 - **Per-set key and capo**: the song stays in its original key; each set list entry can be transposed or capo'd independently.
 - **Stage controls**: autoscroll, font sizing, lyrics-only mode, fullscreen, and keyboard/Bluetooth page-turner support.
+- **Night → daylight slider**: blend the whole interface continuously, with a one-tap dark/light toggle in the library header and song controls.
 - **Offline PWA**: installs to the iPad home screen, works with no network, keeps the screen awake while scrolling.
 - **No accounts, no subscription, no server**. Everything is stored in the browser's IndexedDB on your device.
 
@@ -73,6 +74,7 @@ Bluetooth pedals (AirTurn, PageFlip, iRig BlueBoard) present as keyboards on iPa
 - **Key** transposes the chart live; spelling follows the key being played.
 - **Capo** shows "Capo N · play in X" and shifts the chord shapes.
 - **Chords on / Lyrics only** hides chord symbols for singers.
+- **Appearance** lives in Library menu → Appearance: drag between Night stage and Daylight, or tap the sun/moon button in the library header and song controls. The choice persists.
 - **Pin to set** saves the current key and capo to the set list entry, not the song.
 - Tapping the chart while scrolling does not pause it (deliberate: prevents accidental stops). Use the Scroll button or the pedal.
 
@@ -84,7 +86,7 @@ Charts live in IndexedDB in this browser profile. There is no server and no sync
 - **Library → Download full backup** includes songs, set lists and metadata for one-tap restore.
 - Keep a backup after a big import. Browser storage can be cleared by the OS under pressure, even for installed PWAs.
 
-Session state (current key, capo, scroll speed, font size) is stored per song in `localStorage` so a chart opens the way you left it.
+Stage state (key, capo, scroll speed, font size) and the appearance slider are stored locally so charts and the interface open the way you left them.
 
 ## How it is put together
 

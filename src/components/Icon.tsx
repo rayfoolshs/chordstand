@@ -24,6 +24,8 @@ export type IconName =
   | 'shrink'
   | 'sliders'
   | 'edit'
+  | 'moon'
+  | 'sun'
   | 'grip'
 
 const PATHS: Record<IconName, ReactNode> = {
@@ -102,6 +104,13 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3Z" />
       <path d="m13.5 6.5 3 3" />
+    </>
+  ),
+  moon: <path d="M20.5 14.2A8.6 8.6 0 0 1 9.8 3.5a8.7 8.7 0 1 0 10.7 10.7Z" />,
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2.2M12 19.8V22M2 12h2.2M19.8 12H22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6" />
     </>
   ),
   grip: <path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" />,

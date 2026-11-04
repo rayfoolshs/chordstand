@@ -1,7 +1,12 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+import { applyAppearance } from './store/theme'
+import { useSettings } from './store/useSettings'
 import './styles/app.css'
+
+// Paint the persisted theme before React renders to avoid a flash of night mode.
+applyAppearance(useSettings.getState().appearance)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
