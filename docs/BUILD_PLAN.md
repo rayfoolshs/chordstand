@@ -20,7 +20,7 @@ Non-goals for this phase: accounts, subscriptions, cloud hosting, social feature
 | Set lists | **Done** | Create, reorder, notes, per-entry key/capo, start/next/previous, "Pin to set" |
 | Autoscroll / pedal / wake lock | **Done** | Duration-derived or manual speed; Space/arrow/PageUp/PageDown/F mappings |
 | Offline PWA | **Done** | Installable, precached shell, verified cold load with the server off |
-| Backup / restore / export | **Done** | `.onsong` zip, full backup, in-app restore |
+| Backup / restore / export | **Done** | Storage & backups panel with size estimates, last-backup age, share-sheet save to Files, `.onsong` zip export, full backup and in-app restore |
 | Appearance slider | **Done** | Continuous night → dusk → daylight with contrast-aware text/accent |
 | Two-device mirroring | **Implemented, device verification pending** | WebRTC data channel + QR pairing, two-way songs/sets/view sync. The development browser exposes no ICE candidates, so only the protocol and merge logic are covered by automated tests here |
 | Ultimate Guitar workflow | **Done (compliant)** | In-app search launcher + clipboard paste + UG text cleaner. No scraping |

@@ -9,6 +9,7 @@ interface SettingsState {
   songKeys: Record<string, string>
   songCapos: Record<string, number>
   scrollSpeeds: Record<string, number>
+  lastBackupAt?: number
   setFontSize: (size: number) => void
   setAppearance: (value: number) => void
   toggleAppearance: () => void
@@ -17,6 +18,7 @@ interface SettingsState {
   rememberKey: (songId: string, key: string) => void
   rememberCapo: (songId: string, capo: number) => void
   rememberSpeed: (songId: string, speed: number) => void
+  markBackup: () => void
 }
 
 const STORAGE_KEY = 'chordstand.settings.v1'
@@ -31,6 +33,7 @@ interface Persisted {
   songKeys?: Record<string, string>
   songCapos?: Record<string, number>
   scrollSpeeds?: Record<string, number>
+  lastBackupAt?: number
 }
 
 function readSettings(): Persisted {
@@ -58,6 +61,7 @@ export const useSettings = create<SettingsState>((set) => ({
   songKeys: restored.songKeys ?? {},
   songCapos: restored.songCapos ?? {},
   scrollSpeeds: restored.scrollSpeeds ?? {},
+  lastBackupAt: restored.lastBackupAt,
 
   setFontSize: (fontSize) => set({ fontSize: clamp(fontSize, 14, 56) }),
   setAppearance: (appearance) => set({ appearance: clamp(appearance, 0, 100) }),
@@ -70,6 +74,7 @@ export const useSettings = create<SettingsState>((set) => ({
     set((state) => ({ songCapos: { ...state.songCapos, [songId]: capo } })),
   rememberSpeed: (songId, speed) =>
     set((state) => ({ scrollSpeeds: { ...state.scrollSpeeds, [songId]: speed } })),
+  markBackup: () => set({ lastBackupAt: Date.now() }),
 }))
 
 useSettings.subscribe((state) => {
@@ -82,6 +87,7 @@ useSettings.subscribe((state) => {
       songKeys: state.songKeys,
       songCapos: state.songCapos,
       scrollSpeeds: state.scrollSpeeds,
+      lastBackupAt: state.lastBackupAt,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
   } catch {

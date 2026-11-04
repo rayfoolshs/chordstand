@@ -125,11 +125,18 @@ Bluetooth pedals (AirTurn, PageFlip, iRig BlueBoard) present as keyboards on iPa
 
 ## Data and backups
 
-Charts live in IndexedDB in this browser profile. There is no server and no cloud sync; mirroring is direct between devices over your local network.
+Charts live in IndexedDB in this browser profile. There is no server and no cloud sync; mirroring is direct between devices over your local network. The original uploaded `.zip`/`.backup`/`.onsong` files are **not** copied onto the iPad — only the parsed songs and metadata are kept, so a backup is the only copy you can move into the Files app or iCloud Drive.
 
-- **Library → Export all songs** produces a zip of `.onsong` files you can import anywhere.
-- **Library → Download full backup** includes songs, set lists and metadata for one-tap restore.
-- Keep a backup after a big import. Browser storage can be cleared by the OS under pressure, even for installed PWAs.
+**Library menu → Storage & backups** shows:
+
+- Song and set-list counts and estimated library size.
+- Total browser storage used and the available quota.
+- When you last saved a backup.
+- **Save full backup to Files** — opens the iOS share sheet so you can save the zip to Files/iCloud Drive in one step (falls back to a normal download).
+- **Export all songs** — a zip of `.onsong` files that can be imported anywhere.
+- **Protect storage from cleanup** — requests persistent storage from the browser.
+
+Keep an external backup after a big import. Deleting the home-screen app, clearing Safari data or wiping the iPad removes the local library, and browser storage can be cleared by the OS under pressure.
 
 Stage state (key, capo, scroll speed, font size) and the appearance slider are stored locally so charts and the interface open the way you left them.
 

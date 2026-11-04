@@ -29,6 +29,7 @@ export type IconName =
   | 'link'
   | 'camera'
   | 'copy'
+  | 'database'
   | 'grip'
 
 const PATHS: Record<IconName, ReactNode> = {
@@ -132,6 +133,13 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <rect x="9" y="9" width="11" height="11" rx="2" />
       <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+    </>
+  ),
+  database: (
+    <>
+      <ellipse cx="12" cy="5.5" rx="7.5" ry="2.8" />
+      <path d="M4.5 5.5v13c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-13" />
+      <path d="M4.5 12c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8" />
     </>
   ),
   grip: <path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" />,

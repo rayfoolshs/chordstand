@@ -59,6 +59,15 @@ Coverage:
 - [ ] Stop the server and reload: the shell still opens.
 - [ ] The manifest and icons load with no console errors.
 
+### Backups and storage
+- [ ] Library menu → Storage & backups shows song/set counts and a plausible library size.
+- [ ] "Save full backup to Files" opens the iOS share sheet and can save the zip to Files/iCloud Drive.
+- [ ] On desktop, the same button downloads `chordstand-backup-YYYY-MM-DD.zip`.
+- [ ] After saving, the panel says "Backup up to date / Just now" and the timestamp survives a reload.
+- [ ] "Export all songs" produces a zip that re-imports cleanly.
+- [ ] "Protect storage from cleanup" reports whether persistence was granted.
+- [ ] Restoring the backup zip on a clean origin recreates songs and set lists.
+
 ### Ultimate Guitar workflow
 - [ ] Search opens UG's title search in a new tab.
 - [ ] Copying a chord sheet and tapping "Paste from clipboard" creates a preview.

@@ -2,10 +2,7 @@ import { useMemo, useState } from 'react'
 import type { Song } from '../core/types'
 import { DEMO_SONG, DEMO_SONG_TWO } from '../core/demo'
 import {
-  buildBackupZip,
-  buildLibraryZip,
   candidateFromText,
-  downloadBytes,
   downloadText,
   safeFileName,
   songFromCandidate,
@@ -18,6 +15,7 @@ import { useSync } from '../sync/useSync'
 import { Icon } from './Icon'
 import { Modal } from './Modal'
 import { SongEditor } from './SongEditor'
+import { StoragePanel } from './StoragePanel'
 
 type SortMode = 'title' | 'artist' | 'recent'
 
@@ -44,6 +42,7 @@ export function Library({
   const [sort, setSort] = useState<SortMode>('title')
   const [actionSong, setActionSong] = useState<Song | null>(null)
   const [editingSong, setEditingSong] = useState<Song | null>(null)
+  const [storageOpen, setStorageOpen] = useState(false)
   const [libraryMenu, setLibraryMenu] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -348,22 +347,12 @@ export function Library({
           <button
             className="sheet-row"
             onClick={() => {
-              downloadBytes('chordstand-library.zip', buildLibraryZip(songs))
               setLibraryMenu(false)
+              setStorageOpen(true)
             }}
           >
-            <Icon name="download" size={18} />
-            Export all songs (.onsong zip)
-          </button>
-          <button
-            className="sheet-row"
-            onClick={() => {
-              downloadBytes('chordstand-backup.zip', buildBackupZip(songs, setlists))
-              setLibraryMenu(false)
-            }}
-          >
-            <Icon name="download" size={18} />
-            Download full backup
+            <Icon name="database" size={18} />
+            Storage & backups
           </button>
           <div className="appearance-card">
             <div className="appearance-head">
@@ -420,6 +409,7 @@ export function Library({
       </Modal>
 
       {editingSong && <SongEditor song={editingSong} onClose={() => setEditingSong(null)} />}
+      <StoragePanel open={storageOpen} onClose={() => setStorageOpen(false)} />
     </div>
   )
 }
