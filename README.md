@@ -6,6 +6,8 @@ A local-first chord chart and set list app for working musicians. Built as a bet
 - **Per-set key and capo**: the song stays in its original key; each set list entry can be transposed or capo'd independently.
 - **Stage controls**: autoscroll, font sizing, lyrics-only mode, fullscreen, and keyboard/Bluetooth page-turner support.
 - **Night → daylight slider**: blend the whole interface continuously, with a one-tap dark/light toggle in the library header and song controls.
+- **Mirror two devices**: pair two iPads over the local network with a QR code; songs, set lists and the current screen stay in sync, with no server.
+- **Bring in chords from the web**: search Ultimate Guitar from the Import screen, copy a chart and paste it straight in (or use the clipboard button).
 - **Offline PWA**: installs to the iPad home screen, works with no network, keeps the screen awake while scrolling.
 - **No accounts, no subscription, no server**. Everything is stored in the browser's IndexedDB on your device.
 
@@ -59,6 +61,38 @@ Supported inputs:
 
 PDFs and scanned images are **not** supported yet. Inline `{key:}` and `{capo:}` directives are preserved in the source text but are not applied mid-chart.
 
+## Mirroring two devices
+
+Two Chordstand instances can mirror each other directly over the local network — no accounts, no relay, no internet.
+
+1. Put both devices on the same Wi-Fi.
+2. On device A: **link icon → Host this session**. A QR code appears.
+3. On device B: **link icon → Join a session → Scan host code**, and point the camera at A.
+4. B shows an answer QR. Scan it on A with **Scan answer**. The link icon turns green when connected.
+
+Camera scanning needs HTTPS (the installed PWA qualifies). If the camera is unavailable, each step has a **Show text code** / **Paste code** fallback.
+
+Once connected:
+
+- Songs, set lists and library edits merge both ways (newest `updatedAt` wins on a conflict).
+- Picking a song or set list on either device opens it on the other.
+- Key, capo and stage notes travel with set list entries.
+- Closing the dialog keeps the session running; the header link icon stays green. **Stop mirroring** ends it.
+- The data channel is encrypted (DTLS) and direct. Both apps must stay open.
+
+iOS asks for local network and camera permission the first time. If the host reports *"No network path is available"*, allow local network access or check that both devices really are on the same Wi-Fi.
+
+## Searching Ultimate Guitar
+
+The Import screen has a **Find chords online** card:
+
+1. Type a song or artist and tap **Search UG**. Ultimate Guitar opens in a new tab.
+2. Copy the chord sheet from their page.
+3. Return to Chordstand and tap **Paste from clipboard** (or paste into the box below).
+4. Review the imported chart, fix anything the parser could not read, and import.
+
+Chordstand does **not** download UG pages itself. Their terms and robots rules prohibit automated scraping, the charts are copyrighted, and their Cloudflare/CORS setup blocks browser fetches anyway. Copying a chart you can already see keeps the workflow legal and reliable. The paste cleaner removes UG's page chrome (Download, Print, author/date lines) while keeping the chart and its `Key`, `Capo` and `Tuning` metadata.
+
 ## Stage controls
 
 | Action | Keyboard / pedal |
@@ -80,7 +114,7 @@ Bluetooth pedals (AirTurn, PageFlip, iRig BlueBoard) present as keyboards on iPa
 
 ## Data and backups
 
-Charts live in IndexedDB in this browser profile. There is no server and no sync.
+Charts live in IndexedDB in this browser profile. There is no server and no cloud sync; mirroring is direct between devices over your local network.
 
 - **Library → Export all songs** produces a zip of `.onsong` files you can import anywhere.
 - **Library → Download full backup** includes songs, set lists and metadata for one-tap restore.

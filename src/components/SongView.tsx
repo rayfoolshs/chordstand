@@ -6,6 +6,7 @@ import { songToOnsong } from '../core/parser'
 import { useAutoscroll, useFullscreen, usePerformanceHotkeys, useWakeLock } from '../hooks/useStage'
 import { useSettings } from '../store/useSettings'
 import { useStore } from '../store/useStore'
+import { useSync } from '../sync/useSync'
 import { ChordChart } from './ChordChart'
 import { Icon } from './Icon'
 import { SongEditor } from './SongEditor'
@@ -32,6 +33,8 @@ export function SongView({
   const settings = useSettings()
   const touchSong = useStore((state) => state.touchSong)
   const updateEntry = useStore((state) => state.updateEntry)
+  const syncStatus = useSync((state) => state.status)
+  const openSync = useSync((state) => state.setOpen)
 
   const minor = parseKey(song.key)?.minor ?? false
   const keyChoices = useMemo(() => {
@@ -299,6 +302,16 @@ export function SongView({
             title={settings.appearance >= 50 ? 'Switch to night mode' : 'Switch to daylight mode'}
           >
             <Icon name={settings.appearance >= 50 ? 'moon' : 'sun'} />
+          </button>
+
+          <button
+            className={`icon-btn sync-button ${syncStatus === 'connected' ? 'live' : ''}`}
+            onClick={() => openSync(true)}
+            aria-label="Mirror devices"
+            title={syncStatus === 'connected' ? 'Mirrored with another device' : 'Mirror to another device'}
+          >
+            <Icon name="link" />
+            {syncStatus === 'connected' ? <span className="live-dot" aria-hidden="true" /> : null}
           </button>
         </div>
       )}

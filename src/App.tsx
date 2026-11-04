@@ -5,6 +5,7 @@ import { SetlistDetail } from './components/SetlistDetail'
 import { Setlists } from './components/Setlists'
 import { SongView } from './components/SongView'
 import { EntryEditor } from './components/EntryEditor'
+import { SyncDialog } from './components/SyncDialog'
 import { useSettings } from './store/useSettings'
 import { applyAppearance } from './store/theme'
 import { useStore } from './store/useStore'
@@ -141,6 +142,7 @@ export default function App() {
   return (
     <div className="app">
       {content}
+      <SyncDialog />
       {editor && (
         <EntryEditor setlistId={editor.setlistId} entryId={editor.entryId} onClose={() => setEditor(null)} />
       )}

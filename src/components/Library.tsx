@@ -14,6 +14,7 @@ import { songToOnsong } from '../core/parser'
 import { useSettings } from '../store/useSettings'
 import { appearanceLabel } from '../store/theme'
 import { useStore } from '../store/useStore'
+import { useSync } from '../sync/useSync'
 import { Icon } from './Icon'
 import { Modal } from './Modal'
 import { SongEditor } from './SongEditor'
@@ -35,6 +36,8 @@ export function Library({
   const deleteSongs = useStore((state) => state.deleteSongs)
   const addToSetlist = useStore((state) => state.addToSetlist)
   const settings = useSettings()
+  const syncStatus = useSync((state) => state.status)
+  const openSync = useSync((state) => state.setOpen)
 
   const [query, setQuery] = useState('')
   const [book, setBook] = useState('all')
@@ -129,6 +132,15 @@ export function Library({
             title={settings.appearance >= 50 ? 'Switch to night mode' : 'Switch to daylight mode'}
           >
             <Icon name={settings.appearance >= 50 ? 'moon' : 'sun'} />
+          </button>
+          <button
+            className={`icon-btn sync-button ${syncStatus === 'connected' ? 'live' : ''}`}
+            onClick={() => openSync(true)}
+            aria-label="Mirror devices"
+            title={syncStatus === 'connected' ? 'Mirrored with another device' : 'Mirror to another device'}
+          >
+            <Icon name="link" />
+            {syncStatus === 'connected' ? <span className="live-dot" aria-hidden="true" /> : null}
           </button>
           <button className="icon-btn" onClick={() => setLibraryMenu(true)} aria-label="Library menu">
             <Icon name="more" />
@@ -388,6 +400,17 @@ export function Library({
           <button className="sheet-row" onClick={addDemo}>
             <Icon name="music" size={18} />
             Add demo songs
+          </button>
+          <button
+            className="sheet-row"
+            onClick={() => {
+              openSync(true)
+              setLibraryMenu(false)
+            }}
+          >
+            <Icon name="link" size={18} />
+            Mirror to another device
+            {syncStatus === 'connected' ? <span className="chip live">Live</span> : null}
           </button>
           <p className="fine-print">
             Songs are stored in this browser. Install Chordstand to your home screen, and download a backup after big

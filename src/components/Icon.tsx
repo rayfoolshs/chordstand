@@ -26,6 +26,9 @@ export type IconName =
   | 'edit'
   | 'moon'
   | 'sun'
+  | 'link'
+  | 'camera'
+  | 'copy'
   | 'grip'
 
 const PATHS: Record<IconName, ReactNode> = {
@@ -111,6 +114,24 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <circle cx="12" cy="12" r="4" />
       <path d="M12 2v2.2M12 19.8V22M2 12h2.2M19.8 12H22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6" />
+    </>
+  ),
+  link: (
+    <>
+      <path d="M10.5 13.5a4.5 4.5 0 0 0 6.4 0l2.3-2.3a4.5 4.5 0 0 0-6.4-6.4L11.5 6" />
+      <path d="M13.5 10.5a4.5 4.5 0 0 0-6.4 0l-2.3 2.3a4.5 4.5 0 0 0 6.4 6.4l1.3-1.2" />
+    </>
+  ),
+  camera: (
+    <>
+      <path d="M4 8.5h3.2L8.7 6h6.6l1.5 2.5H20V19H4Z" />
+      <circle cx="12" cy="13" r="3.4" />
+    </>
+  ),
+  copy: (
+    <>
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M5 15V5a2 2 0 0 1 2-2h10" />
     </>
   ),
   grip: <path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" />,

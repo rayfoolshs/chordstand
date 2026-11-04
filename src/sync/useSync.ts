@@ -1,0 +1,28 @@
+import { create } from 'zustand'
+import type { SessionStatus } from './SyncSession'
+
+export type SyncMode = 'idle' | 'host' | 'join'
+
+export interface SyncUiState {
+  open: boolean
+  mode: SyncMode
+  status: SessionStatus | 'preparing' | 'waiting'
+  code: string
+  error: string
+  notice: string
+  setOpen: (open: boolean) => void
+  patch: (patch: Partial<Omit<SyncUiState, 'setOpen' | 'patch'>>) => void
+  reset: () => void
+}
+
+export const useSync = create<SyncUiState>((set) => ({
+  open: false,
+  mode: 'idle',
+  status: 'idle',
+  code: '',
+  error: '',
+  notice: '',
+  setOpen: (open) => set({ open }),
+  patch: (patch) => set(patch),
+  reset: () => set({ mode: 'idle', status: 'idle', code: '', error: '', notice: '' }),
+}))
