@@ -27,6 +27,7 @@ Non-goals for this phase: accounts, subscriptions, cloud hosting, social feature
 | PDF / image charts | Not started | Next major content feature |
 | Backing tracks / MIDI / projection | Not started | Later phase |
 | Hosted relay for mirroring across networks | Not started | Optional, only if LAN-only is insufficient |
+| Hosting and CI | **Done** | Public GitHub repo, GitHub Pages at <https://rayfoolshs.github.io/chordstand/>, auto-deploy + tests on every push to `main` |
 
 ## Milestones
 
