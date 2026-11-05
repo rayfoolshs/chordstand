@@ -9,6 +9,7 @@ import { SyncDialog } from './components/SyncDialog'
 import { useSettings } from './store/useSettings'
 import { applyAppearance } from './store/theme'
 import { useStore } from './store/useStore'
+import { readPendingImport } from './core/deeplink'
 import { Icon } from './components/Icon'
 
 export default function App() {
@@ -23,10 +24,18 @@ export default function App() {
   const appearance = useSettings((state) => state.appearance)
 
   const [editor, setEditor] = useState<{ setlistId: string; entryId: string } | null>(null)
+  const [pendingImport, setPendingImport] = useState<string | null>(() => readPendingImport())
 
   useEffect(() => {
     void load()
   }, [load])
+
+  // A #import= link (typically from an iOS Shortcut) opens straight into the
+  // preview with the chart already loaded.
+  useEffect(() => {
+    if (pendingImport) navigate({ name: 'import' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useLayoutEffect(() => {
     applyAppearance(appearance)
@@ -58,7 +67,14 @@ export default function App() {
       break
 
     case 'import':
-      content = <ImportView onBack={() => navigate({ name: 'library' })} onDone={() => navigate({ name: 'library' })} />
+      content = (
+        <ImportView
+          initialText={pendingImport ?? undefined}
+          onInitialConsumed={() => setPendingImport(null)}
+          onBack={() => navigate({ name: 'library' })}
+          onDone={() => navigate({ name: 'library' })}
+        />
+      )
       break
 
     case 'setlists':

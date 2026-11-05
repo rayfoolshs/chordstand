@@ -1,11 +1,22 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ImportCandidate } from '../core/types'
 import { candidateFromText, readImportFiles, songFromCandidate, type ImportIssue, type ImportResult } from '../core/import'
 import { cleanUltimateGuitarText, ultimateGuitarSearchUrl } from '../core/ug'
 import { useStore } from '../store/useStore'
 import { Icon } from './Icon'
 
-export function ImportView({ onBack, onDone }: { onBack: () => void; onDone: () => void }) {
+export function ImportView({
+  onBack,
+  onDone,
+  initialText,
+  onInitialConsumed,
+}: {
+  onBack: () => void
+  onDone: () => void
+  /** A chart that arrived through a #import= deep link. */
+  initialText?: string
+  onInitialConsumed?: () => void
+}) {
   const songs = useStore((state) => state.songs)
   const addSongs = useStore((state) => state.addSongs)
   const restoreBackup = useStore((state) => state.restoreBackup)
@@ -21,6 +32,7 @@ export function ImportView({ onBack, onDone }: { onBack: () => void; onDone: () 
   const [busy, setBusy] = useState(false)
   const [dragging, setDragging] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [linkNotice, setLinkNotice] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleFiles = async (files: FileList | File[]) => {
@@ -58,6 +70,18 @@ export function ImportView({ onBack, onDone }: { onBack: () => void; onDone: () 
       // Clipboard permission can be denied; the textarea still works.
     }
   }
+
+  // A chart delivered by a #import= link (an iOS Shortcut, typically) is added
+  // to the preview once, then the caller clears it so a reload does not repeat it.
+  const linkConsumed = useRef(false)
+  useEffect(() => {
+    if (!initialText || linkConsumed.current) return
+    linkConsumed.current = true
+    addPastedText(initialText)
+    setLinkNotice(true)
+    onInitialConsumed?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialText])
 
   const searchUltimateGuitar = () => {
     const query = ugQuery.trim()
@@ -114,6 +138,20 @@ export function ImportView({ onBack, onDone }: { onBack: () => void; onDone: () 
       </header>
 
       <div className="import-body">
+        {linkNotice && (
+          <div className="restore-card">
+            <div>
+              <strong>Chart received from the link</strong>
+              <p className="muted small">
+                It is in the preview below. Check it over, then tap Import.
+              </p>
+            </div>
+            <button className="ghost-button" onClick={() => setLinkNotice(false)}>
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {notes.length > 0 && (
           <div className="restore-card">
             <div>

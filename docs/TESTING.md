@@ -3,7 +3,7 @@
 ## Automated
 
 ```bash
-npm test           # Vitest, 42 tests
+npm test           # Vitest, 46 tests
 npx tsc --noEmit   # strict typecheck
 npm run build      # typecheck + Vite build + service-worker asset injection
 ```
@@ -15,6 +15,7 @@ Coverage:
 | `src/core/core.test.ts` | OnSong metadata, title/artist shorthand, chords-over-lyrics, ChordPro directives, inline transpose, key detection, round-trip export, duplicates |
 | `src/core/onsongBackup.test.ts` | SQLite song extraction from several column layouts, embedded metadata, association-table set lists, JSON-column set lists, media-table exclusion |
 | `src/core/ug.test.ts` | UG search URL, page-chrome removal, metadata retention, blank-line collapsing |
+| `src/core/deeplink.test.ts` | `#import=` decoding, hash clearing, malformed and empty payloads |
 
 | `src/sync/mirror.test.ts` | Host snapshot, merge by `updatedAt`, local edit/delete broadcasts, view broadcasts, no echo of remote applies, guest-to-guest relay, scroll/autoscroll/key-capo sync and replay |
 
@@ -75,6 +76,12 @@ Coverage:
 - [ ] Copying a chord sheet and tapping "Paste from clipboard" creates a preview.
 - [ ] The cleaner removes Download/Print/author lines but keeps `Key`, `Capo` and the chart.
 - [ ] Import the candidate and edit it if needed.
+
+### Deep link / Shortcut
+- [ ] Open `…#import=Title%3A%20Test%0A%0A%5BG%5DHello` in Safari; the app opens on Import with the chart in the preview.
+- [ ] The URL hash is cleared, so reloading does not add the chart again.
+- [ ] A malformed or empty `#import=` link is ignored without an error page.
+- [ ] The **Send to Chordstand** Shortcut (see [SHORTCUT.md](SHORTCUT.md)) sends a selected chart from Safari.
 
 ## Manual test — multi-device mirroring
 

@@ -26,7 +26,7 @@ Non-goals for this phase: accounts, subscriptions, cloud hosting, social feature
 | Backup / restore / export | **Done** | Storage & backups panel with size estimates, last-backup age, share-sheet save to Files, `.onsong` zip export, full backup and in-app restore |
 | Appearance slider | **Done** | Continuous night → dusk → daylight with contrast-aware text/accent |
 | Multi-device mirroring | **Done, verified on two iPads** | PeerJS pairing with a 4-digit code, then a direct data channel; host-relayed songs/sets/view/scroll/autoscroll/transpose/fullscreen sync |
-| Ultimate Guitar workflow | **Done (compliant)** | In-app search launcher + clipboard paste + UG text cleaner. No scraping |
+| Ultimate Guitar workflow | **Done (compliant)** | In-app search launcher + clipboard paste + UG text cleaner. No scraping. Optional iOS Shortcut sends a selected chart in through a `#import=` link |
 | PDF / image charts | Not started | Next major content feature |
 | Backing tracks / MIDI / projection | Not started | Later phase |
 | Self-hosted signalling | Not started | Optional; only if the public PeerJS service is not good enough |
@@ -136,6 +136,17 @@ usable chart.
 - Creator credit in the library header and the README.
 
 **Acceptance:** full screen works on an installed iPad app, mirrors to the other device, and restores cleanly.
+
+### M11 — Chart deep links ✅
+- `#import=<url-encoded chart>` opens the import preview with the chart loaded and clears the hash so a reload
+  does not import it twice.
+- Payloads over 60,000 characters are ignored; malformed encoding is ignored rather than throwing.
+- An iOS Shortcut carries a text selection from Safari's share sheet into that link; see
+  [the shortcut guide](SHORTCUT.md).
+- No clipboard access and still no scraping — the chart text is whatever the user selected.
+
+**Acceptance:** sharing a selected chart through the Shortcut opens the preview, and confirming it saves the
+song.
 
 ## Next up
 

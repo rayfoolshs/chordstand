@@ -29,7 +29,7 @@ OnSong for a band that already has a big `.onsong` library.
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 42 Vitest tests: parser, transpose, import, backup, mirror merge
+npm test           # 46 Vitest tests: parser, transpose, import, backup, deep link, mirror merge
 npm run build      # production build in dist/
 npm run preview    # serve the production build
 ```
@@ -48,6 +48,7 @@ workflow sets `PAGES_BASE` to the repository name, runs the tests, builds, and p
 - [Testing](docs/TESTING.md) — automated coverage, manual QA, multi-device checklist.
 - [Design decisions](docs/DECISIONS.md) — why local-first, why PeerJS, why no UG scraping.
 - [Changelog](docs/CHANGELOG.md) — what changed, release by release.
+- [Shortcut guide](docs/SHORTCUT.md) — send a chart from Safari straight to the import preview.
 
 ### Install on iPad
 
@@ -89,6 +90,23 @@ found. OnSong's closed `.onsongarchive` format is not supported; use **Backup** 
 | `.json` | A Chordstand backup file |
 
 PDFs and scanned images are **not** supported yet.
+
+## Searching Ultimate Guitar
+
+The Import screen has a **Find chords online** card:
+
+1. Type a song or artist and tap **Search UG**. Ultimate Guitar opens in a new tab.
+2. Copy the chord sheet from their page.
+3. Return to Chordstand and tap **Paste from clipboard** (or paste into the box below).
+4. Review the imported chart, fix anything the parser could not read, and import.
+
+Chordstand does **not** download UG pages itself. Their terms and robots rules prohibit automated scraping, the
+charts are copyrighted, and their Cloudflare/CORS setup blocks browser fetches anyway. Copying a chart you can
+already see keeps the workflow legal and reliable. The paste cleaner removes UG's page chrome (Download, Print,
+author/date lines) while keeping the chart and its `Key`, `Capo` and `Tuning` metadata.
+
+**Hands-off option:** a small iOS Shortcut can send the selected chart from Safari straight into the import
+preview through a `#import=` link. See the [shortcut guide](docs/SHORTCUT.md).
 
 ## Mirroring devices
 
