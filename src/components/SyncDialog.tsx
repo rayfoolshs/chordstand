@@ -24,6 +24,7 @@ export function SyncDialog() {
 
   const [paste, setPaste] = useState('')
   const [scanTarget, setScanTarget] = useState<'offer' | 'answer' | null>(null)
+  const [scanStream, setScanStream] = useState<MediaStream | null>(null)
   const [copied, setCopied] = useState(false)
   const [last, setLast] = useState<LastSession | null>(null)
 
@@ -33,11 +34,14 @@ export function SyncDialog() {
 
   useEffect(() => {
     if (!open) {
+      scanStream?.getTracks().forEach((track) => track.stop())
+      setScanStream(null)
       setPaste('')
       setScanTarget(null)
       setCopied(false)
       useSync.getState().patch({ notice: '' })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   const copy = async (value: string) => {
@@ -70,9 +74,36 @@ export function SyncDialog() {
     run(text)
   }
 
+  // Ask for the camera directly from the tap. iOS only honours getUserMedia
+  // inside a live user gesture, so we cannot wait for the scanner to mount.
+  const beginScan = async (target: 'offer' | 'answer') => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      useSync.getState().patch({ notice: 'Camera access is unavailable here. Use “Paste code instead”.' })
+      return
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false,
+      })
+      setScanStream(stream)
+      setScanTarget(target)
+    } catch {
+      useSync.getState().patch({
+        notice: 'Could not open the camera. Allow camera access and try again, or use “Paste code instead”.',
+      })
+    }
+  }
+
+  const stopScan = () => {
+    scanStream?.getTracks().forEach((track) => track.stop())
+    setScanStream(null)
+    setScanTarget(null)
+  }
+
   const handleScan = (value: string) => {
     const target = scanTarget
-    setScanTarget(null)
+    stopScan()
     setPaste('')
     if (target === 'offer') void syncManager.joinWithOffer(value)
     else void syncManager.acceptAnswer(value)
@@ -81,7 +112,7 @@ export function SyncDialog() {
   return (
     <Modal open={open} title="Mirror devices" onClose={() => setOpen(false)} wide>
       {scanTarget ? (
-        <QrScanner onResult={handleScan} onCancel={() => setScanTarget(null)} />
+        <QrScanner stream={scanStream} onResult={handleScan} onCancel={stopScan} />
       ) : (
         <div className="sync-dialog">
           {status === 'connected' ? (
@@ -153,7 +184,7 @@ export function SyncDialog() {
                   paste={paste}
                   onPaste={setPaste}
                   onCopy={() => void copy(code)}
-                  onScan={() => setScanTarget('answer')}
+                  onScan={() => void beginScan('answer')}
                   onAnswer={(value) => void syncManager.acceptAnswer(value)}
                   onPasteConnect={() => void pasteFromClipboard((value) => syncManager.acceptAnswer(value))}
                   onRetry={() => void syncManager.startHost()}
@@ -166,7 +197,7 @@ export function SyncDialog() {
                   paste={paste}
                   onPaste={setPaste}
                   onCopy={() => void copy(code)}
-                  onScan={() => setScanTarget('offer')}
+                  onScan={() => void beginScan('offer')}
                   onOffer={(value) => void syncManager.joinWithOffer(value)}
                   onPasteConnect={() => void pasteFromClipboard((value) => syncManager.joinWithOffer(value))}
                   onRetry={() => syncManager.beginJoin()}
