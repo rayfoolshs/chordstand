@@ -41,6 +41,23 @@ Notable changes to Chordstand. The app is a static PWA deployed from `main`; eve
 - Removed the QR scanner dependency churn: QR and camera are back, camera permission is requested from the tap
   (an iOS requirement) with a retry and a paste fallback.
 
+### Chord colour
+- Chords are no longer locked to the theme accent. Pick preset inks or any custom colour from Library menu →
+  Appearance (above the night/day slider) or the new palette button beside the sun/moon toggle in the song
+  controls.
+- The choice is contrast-adjusted for the current theme, so a bright or dark colour stays readable in both
+  night and daylight, and it persists with the other stage settings.
+
+### One-tap Ultimate Guitar import
+- The Import screen now generates a personal bookmarklet (**Send chart to Chordstand**). Dragging it to the
+  bookmarks bar, or copying it as a bookmark's address, turns "select → copy → switch app → paste" into one tap
+  on a UG chart page.
+- The bookmarklet reads the chart already on screen, adds the visible title and artist, strips UG's trailing
+  marker and hands it over in the URL fragment. Chordstand routes straight to Import and shows the usual
+  preview; duplicates stay unchecked and nothing is saved until Import is tapped.
+- The fragment is cleared on arrival and the payload never leaves the browser. ADR-003 was amended: the app
+  still does not fetch UG, and the bookmarklet is optional and user-installed.
+
 ## 0.1.0
 
 - OnSong, ChordPro, text, zip, `.backup` and JSON import with preview, warnings and duplicate detection.

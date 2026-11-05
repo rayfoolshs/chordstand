@@ -1263,6 +1263,34 @@ button:disabled {
   margin: 0;
 }
 
+.ug-bookmarklet {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.ug-bookmarklet-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ug-bookmarklet .fine-print {
+  margin: 0;
+}
+
+.bookmarklet-link {
+  cursor: grab;
+  text-decoration: none;
+}
+
+.bookmarklet-link:active {
+  cursor: grabbing;
+}
+
 .paste-card textarea {
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 0.82rem;

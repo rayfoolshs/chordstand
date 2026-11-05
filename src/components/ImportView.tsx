@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ImportCandidate } from '../core/types'
 import { candidateFromText, readImportFiles, songFromCandidate, type ImportIssue, type ImportResult } from '../core/import'
 import { cleanUltimateGuitarText, looksLikeChordChart, ultimateGuitarSearchUrl } from '../core/ug'
+import { buildUgBookmarklet, takeQueuedUgImport, UG_IMPORT_EVENT } from '../core/ugImport'
 import { useStore } from '../store/useStore'
 import { Icon } from './Icon'
 
@@ -25,7 +26,36 @@ export function ImportView({ onBack, onDone }: { onBack: () => void; onDone: () 
   const [dragging, setDragging] = useState(false)
   const [importing, setImporting] = useState(false)
   const [clipboardNotice, setClipboardNotice] = useState(false)
+  const [ugNotice, setUgNotice] = useState(false)
+  const [bookmarkletMessage, setBookmarkletMessage] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const bookmarkletRef = useRef<HTMLAnchorElement>(null)
+
+  const bookmarklet = useMemo(
+    () => buildUgBookmarklet(new URL(import.meta.env.BASE_URL, window.location.origin).toString()),
+    [],
+  )
+
+  // React strips javascript: URLs from href props, so set the bookmarklet
+  // attribute directly. It is generated locally, never user supplied.
+  useEffect(() => {
+    bookmarkletRef.current?.setAttribute('href', bookmarklet)
+  }, [bookmarklet])
+
+  // A bookmarklet hands its chart over through sessionStorage (see App.tsx).
+  // Reading removes the entry, so a StrictMode double-run cannot import twice.
+  useEffect(() => {
+    const ingest = () => {
+      const payload = takeQueuedUgImport()
+      if (!payload) return
+      addPastedText(payload)
+      setUgNotice(true)
+    }
+    ingest()
+    window.addEventListener(UG_IMPORT_EVENT, ingest)
+    return () => window.removeEventListener(UG_IMPORT_EVENT, ingest)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleFiles = async (files: FileList | File[]) => {
     const list = Array.from(files)
@@ -60,6 +90,15 @@ export function ImportView({ onBack, onDone }: { onBack: () => void; onDone: () 
       if (text.trim()) addPastedText(text)
     } catch {
       // Clipboard permission can be denied; the textarea still works.
+    }
+  }
+
+  const copyBookmarklet = async () => {
+    try {
+      await navigator.clipboard.writeText(bookmarklet)
+      setBookmarkletMessage('Copied — paste it as the bookmark’s address.')
+    } catch {
+      setBookmarkletMessage('Could not copy; drag the button to your bookmarks bar instead.')
     }
   }
 
@@ -153,6 +192,20 @@ export function ImportView({ onBack, onDone }: { onBack: () => void; onDone: () 
       </header>
 
       <div className="import-body">
+        {ugNotice && (
+          <div className="restore-card">
+            <div>
+              <strong>Chart sent from Ultimate Guitar</strong>
+              <p className="muted small">
+                It is in the preview below — check it over, then tap Import. Nothing is saved until you do.
+              </p>
+            </div>
+            <button className="ghost-button" onClick={() => setUgNotice(false)}>
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {clipboardNotice && (
           <div className="restore-card">
             <div>
@@ -291,6 +344,34 @@ export function ImportView({ onBack, onDone }: { onBack: () => void; onDone: () 
               Ultimate Guitar blocks automated downloads, so copy the chart you can see in their tab, then paste
               it here or use the box below.
             </span>
+          </div>
+          <div className="ug-bookmarklet">
+            <div className="ug-bookmarklet-actions">
+              <a
+                ref={bookmarkletRef}
+                className="ghost-button bookmarklet-link"
+                href="#"
+                draggable
+                onClick={(event) => event.preventDefault()}
+                title="Drag me to your bookmarks bar"
+              >
+                <Icon name="grip" size={18} />
+                Send chart to Chordstand
+              </a>
+              <button
+                className="ghost-button"
+                onClick={() => void copyBookmarklet()}
+              >
+                <Icon name="copy" size={18} />
+                Copy bookmarklet
+              </button>
+            </div>
+            <p className="fine-print">
+              Drag the first button to your bookmarks bar once. On a UG chart, run the bookmark and the chart opens
+              here in the preview — nothing is saved until you tap Import. On iPad, save this page to Favourites,
+              edit that bookmark and paste the copied code as its address.
+              {bookmarkletMessage ? ` ${bookmarkletMessage}` : ''}
+            </p>
           </div>
         </div>
 

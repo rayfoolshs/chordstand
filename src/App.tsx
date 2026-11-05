@@ -9,6 +9,7 @@ import { SyncDialog } from './components/SyncDialog'
 import { useSettings } from './store/useSettings'
 import { applyAppearance } from './store/theme'
 import { useStore } from './store/useStore'
+import { queueUgImport, takeUgImportFromUrl, UG_IMPORT_EVENT } from './core/ugImport'
 import { Icon } from './components/Icon'
 
 export default function App() {
@@ -28,6 +29,22 @@ export default function App() {
   useEffect(() => {
     void load()
   }, [load])
+
+  // A UG bookmarklet opens the app with the chart in the URL fragment. Hand it
+  // to the import screen through sessionStorage so the hash can be cleared.
+  // `hashchange` also covers a bookmarklet that reuses the current tab.
+  useEffect(() => {
+    const ingest = () => {
+      const payload = takeUgImportFromUrl()
+      if (!payload) return
+      queueUgImport(payload)
+      window.dispatchEvent(new Event(UG_IMPORT_EVENT))
+      navigate({ name: 'import' })
+    }
+    ingest()
+    window.addEventListener('hashchange', ingest)
+    return () => window.removeEventListener('hashchange', ingest)
+  }, [navigate])
 
   useLayoutEffect(() => {
     applyAppearance(appearance, chordColor)

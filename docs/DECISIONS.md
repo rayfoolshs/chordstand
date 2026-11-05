@@ -22,13 +22,25 @@ Short ADR-style notes for the choices that shape the app.
 
 ## ADR-003 — No scraping of Ultimate Guitar
 
-**Decision:** provide a search launcher, a clipboard paste button and a UG text cleaner. Do not fetch UG pages inside the app.
+**Decision:** provide a search launcher, a clipboard paste button, a UG text cleaner and an optional
+user-installed bookmarklet. The app itself never fetches UG pages.
 
 **Why:** UG's terms and robots rules prohibit automated extraction; chord sheets include copyrighted lyrics and arrangements; browser CORS and Cloudflare would block a static client anyway; a server-side scraper would put the operator at legal and operational risk.
 
-**Cost:** importing a UG chart is copy → paste rather than one tap. The search is still one tap, and the paste is one tap if the clipboard contains the chart.
+**Cost:** importing a UG chart is either copy → paste, or one tap on the bookmarklet, rather than a silent
+background import.
 
-**Alternatives considered:** unofficial UG APIs/scrapers (rejected), browser extensions/bookmarklets that extract the page (still ToS-risky), licensed catalog integrations such as SongSelect/PraiseCharts (a future option for users with accounts).
+**Alternatives considered:** unofficial UG APIs/scrapers (rejected), a bundled browser extension (rejected:
+distribution and permission overhead for the same page-read), licensed catalog integrations such as
+SongSelect/PraiseCharts (a future option for users with accounts).
+
+**Amendment — bookmarklet:** the bookmarklet is scoped to a single page the user is already viewing and runs
+only on an explicit tap. It reads the chart element, adds the visible title/artist, and opens Chordstand with
+the text in the URL fragment. It does not crawl, paginate, use accounts or export in bulk, and Chordstand still
+shows the chart in the import preview — nothing is saved until the user taps Import. The bookmarklet is
+generated locally per deployment, not distributed as an extension or invoked automatically. Residual ToS risk
+remains and is accepted by the person who installs it. A future licensed catalog integration would remove this
+trade-off.
 
 ## ADR-004 — Keep the raw chart source
 

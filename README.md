@@ -108,6 +108,20 @@ charts are copyrighted, and their Cloudflare/CORS setup blocks browser fetches a
 already see keeps the workflow legal and reliable. The paste cleaner removes UG's page chrome (Download, Print,
 author/date lines) while keeping the chart and its `Key`, `Capo` and `Tuning` metadata.
 
+### One-tap option: the bookmarklet
+
+The **Find chords online** card also offers **Send chart to Chordstand**:
+
+1. Drag that button to your bookmarks bar once (or tap **Copy bookmarklet** and paste the code as a bookmark's
+   address).
+2. On the UG chart you are looking at, run the bookmark.
+3. Chordstand opens with the chart already in the import preview — clean, with title and artist filled in.
+   Nothing is saved until you tap **Import**, and duplicates are still unchecked.
+
+It reads only the chart on the page you are viewing, on an explicit tap: it does not crawl, sign in or bulk
+export. On iPad, add this page to Favourites, edit that bookmark and paste the copied code as its address. The
+bookmarklet is optional; copy → paste keeps working exactly as before.
+
 ## Mirroring devices
 
 One iPad is the **host** and shows a **4-digit code**; any number of others join with it. Pairing is brokered

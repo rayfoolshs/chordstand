@@ -79,15 +79,17 @@ Write path: UI action → Zustand update → Dexie write. The sync engine subscr
 ## Import pipeline
 
 ```
-File / zip / .backup / paste
+File / zip / .backup / paste / UG bookmarklet
         │
         ├─ text formats → parseSong()
         │     header metadata → body lines → ChartLine[]
         │
         ├─ zip → inspect entries → recurse, or detect OnSong.sqlite3
         │
-        └─ .backup → unzip → sql.js → extractSongsFromDatabase()
-                                 → extractSetlistsFromDatabase()
+        ├─ .backup → unzip → sql.js → extractSongsFromDatabase()
+        │                            → extractSetlistsFromDatabase()
+        │
+        └─ bookmarklet → #ug= fragment → sessionStorage → cleaned text
         │
         ▼
 ImportCandidate[]  (preview, duplicates, warnings)
@@ -95,6 +97,12 @@ ImportCandidate[]  (preview, duplicates, warnings)
         ▼
 Song[] → Dexie → Zustand
 ```
+
+The optional UG bookmarklet (`src/core/ugImport.ts`) runs in the page the user is already viewing. It builds a
+title/artist header, base64url-encodes the chart into the URL fragment (`#ug=…`), and opens the app. `App`
+moves the payload into `sessionStorage` so the fragment can be cleared, routes to Import, and `ImportView`
+feeds it through the same cleaner and preview as a manual paste. The fragment never reaches a server; the URL
+length limit (~60k encoded characters) keeps it within Safari's range.
 
 ### Text parser
 
@@ -207,7 +215,7 @@ chrome on the others.
 
 ```
 src/
-  core/        types, parser, chords, import, OnSong backup, UG cleanup, demos
+  core/        types, parser, chords, import, OnSong backup, UG cleanup, bookmarklet bridge, demos
   store/       Dexie schema, app store, settings, theme engine
   hooks/       autoscroll, wake lock, fullscreen, pedal hotkeys
   sync/        message types, PeerJS link, mirror engine, manager/UI state

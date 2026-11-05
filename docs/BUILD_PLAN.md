@@ -26,7 +26,7 @@ Non-goals for this phase: accounts, subscriptions, cloud hosting, social feature
 | Backup / restore / export | **Done** | Storage & backups panel with size estimates, last-backup age, share-sheet save to Files, `.onsong` zip export, full backup and in-app restore |
 | Appearance slider | **Done** | Continuous night → dusk → daylight with contrast-aware text/accent |
 | Multi-device mirroring | **Done, verified on two iPads** | PeerJS pairing with a 4-digit code, then a direct data channel; host-relayed songs/sets/view/scroll/autoscroll/transpose/fullscreen sync |
-| Ultimate Guitar workflow | **Done (compliant)** | In-app search launcher + clipboard paste, with automatic pick-up when a copied chart is detected, + UG text cleaner. No scraping |
+| Ultimate Guitar workflow | **Done (compliant)** | In-app search launcher + clipboard paste, with automatic pick-up when a copied chart is detected, + UG text cleaner. Optional bookmarklet sends one open chart to the preview. No scraping |
 | PDF / image charts | Not started | Next major content feature |
 | Backing tracks / MIDI / projection | Not started | Later phase |
 | Self-hosted signalling | Not started | Optional; only if the public PeerJS service is not good enough |
@@ -124,6 +124,7 @@ pairing to a single code. See [ADR-002](DECISIONS.md).
 - Search opens Ultimate Guitar's title search in a new tab.
 - "Paste from clipboard" and the paste field feed the existing importer.
 - UG cleaner removes page chrome while keeping chart text and Key/Capo/Tuning metadata.
+- Optional bookmarklet reads the chart already on screen and opens it in the import preview (see ADR-003).
 
 **Acceptance:** paste a copied UG chord sheet → preview shows title/artist/key/chords; importing it creates a
 usable chart.
