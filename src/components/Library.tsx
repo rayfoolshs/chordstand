@@ -107,9 +107,21 @@ export function Library({
           <span className="brand-mark" aria-hidden="true">
             <Icon name="music" size={20} />
           </span>
-          <div>
-            <h1>Chordstand</h1>
+          <div className="brand-text">
+            <h1>
+              Chordstand
+              <em className="brand-credit"> · Created by Ray Foo</em>
+            </h1>
             <p>
+              <a
+                className="brand-link"
+                href="https://www.rayfooproductions.com"
+                target="_blank"
+                rel="noreferrer"
+              >
+                www.rayfooproductions.com
+              </a>
+              {' · '}
               {songs.length} {songs.length === 1 ? 'song' : 'songs'}
               {setlists.length ? ` · ${setlists.length} ${setlists.length === 1 ? 'set' : 'sets'}` : ''}
             </p>
@@ -257,15 +269,6 @@ export function Library({
           )}
         </div>
       )}
-
-      <footer className="app-credit">
-        <span>
-          Chordstand · Created by <strong>Ray Foo</strong>
-        </span>
-        <a href="https://www.rayfooproductions.com" target="_blank" rel="noreferrer">
-          www.rayfooproductions.com
-        </a>
-      </footer>
 
       <Modal open={Boolean(actionSong)} title={actionSong?.title} onClose={() => setActionSong(null)}>
         {actionSong && (
