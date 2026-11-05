@@ -63,23 +63,28 @@ export function SyncDialog() {
     }
   }
 
-  // Share a self-contained message (instructions + code, plus a link for the
-  // offer) so it survives AirDrop or Messages between iPads on different Apple
-  // IDs, where the clipboard does not sync.
+  // The offer is shared as a link so the receiving iPad opens it and joins
+  // automatically; the answer is shared as text for the host to paste. Text
+  // alone (previous approach) cannot trigger the app, so the code had to be
+  // pasted by hand.
   const share = async (value: string, kind: 'offer' | 'answer') => {
     const link = `${window.location.origin}${window.location.pathname}#pair=${encodeURIComponent(value)}`
-    const message =
-      kind === 'offer'
-        ? `Chordstand: on this iPad open the app, tap "Join a session" and paste the code below.\n\n${value}\n\nOr open this link to join: ${link}`
-        : `Chordstand: on the host iPad tap "Paste answer & connect" and paste the code below.\n\n${value}`
     try {
       if (canShare) {
-        await navigator.share({ title: 'Chordstand pairing', text: message })
+        if (kind === 'offer') {
+          await navigator.share({
+            title: 'Chordstand session',
+            text: 'Tap to join my Chordstand session.',
+            url: link,
+          })
+        } else {
+          await navigator.share({ title: 'Chordstand answer code', text: value })
+        }
         setShared(true)
         window.setTimeout(() => setShared(false), 1600)
         return
       }
-      await navigator.clipboard.writeText(message)
+      await navigator.clipboard.writeText(kind === 'offer' ? link : value)
       setCopied(true)
       window.setTimeout(() => setCopied(false), 1600)
     } catch {
@@ -261,9 +266,8 @@ function HostPanel({
         <h3>1. Send this code to the other iPad</h3>
         <PairCode value={code} copied={copied} shared={shared} canShare={canShare} onCopy={onCopy} onShare={onShare} />
         <p className="fine-print">
-          Tap <strong>Share</strong> to send it by AirDrop or Messages, then on that iPad choose{' '}
-          <strong>Join a session</strong> and paste it. Universal Clipboard only carries it automatically on the
-          same Apple ID.
+          Tap <strong>Share</strong> to send a link by AirDrop or Messages. Opening that link on the other iPad
+          joins automatically — no pasting. Or tap <strong>Copy code</strong> and paste it there by hand.
         </p>
       </div>
 
