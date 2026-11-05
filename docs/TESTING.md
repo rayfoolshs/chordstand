@@ -82,12 +82,12 @@ Coverage:
 - Different libraries on each device is the most useful test.
 
 ### Pair
-- [ ] Device A: link icon → **Host this session**. A pairing code appears.
-- [ ] Device B: link icon → **Join a session**, then **Paste & continue** (reads the clipboard) or paste the code.
-- [ ] B shows an answer code; A taps **Paste answer & connect**, or simply copies the answer and returns to the app (it fills in automatically).
-- [ ] Pasting an answer from an **earlier** attempt shows a notice and does not connect (stale codes are rejected).
+- [ ] Device A: link icon → **Host this session**. A QR code appears.
+- [ ] Device B: link icon → **Join a session** → **Scan the host code**. B accepts the offer.
+- [ ] B shows an answer QR; A taps **Scan answer** and scans it.
 - [ ] Both dialogs show **Devices are mirrored**; both header link icons turn green.
-- [ ] Different Apple IDs: **Share** on A → AirDrop/Messages to B → paste on B → **Share** on B → AirDrop/Messages to A → paste on A; the session forms.
+- [ ] If scanning fails: **Copy code** / **Paste & continue** on B, then **Paste answer & connect** on A; the session forms.
+- [ ] Pasting an answer from an **earlier** attempt shows a notice and does not connect (stale codes are rejected).
 - [ ] Tap **Share** on A and open the link on B; B joins automatically.
 - [ ] Reopen the dialog after pairing: **Reconnect to last device** appears and resumes the same role.
 
