@@ -4,11 +4,11 @@ Short ADR-style notes for the choices that shape the app.
 
 ## ADR-001 — Local-first, no backend
 
-**Decision:** store songs and set lists in IndexedDB; ship a static PWA; no accounts or server.
+**Decision:** store songs and set lists in IndexedDB; ship a static PWA; no accounts and no application backend.
 
 **Why:** the band needs the app to work in pubs, churches and rehearsal rooms with poor Wi-Fi. Static hosting is free and private. Backups and file export replace server-side safety.
 
-**Cost:** no automatic cross-device sync (mirroring is explicit), storage lives with the browser, and Safari can evict non-installed storage.
+**Cost:** no automatic cross-device sync (mirroring is explicit), storage lives with the browser, and Safari can evict non-installed storage. Pairing does borrow a public signalling service for a few seconds (see ADR-002), so it is not strictly offline.
 
 ## ADR-002 — Pairing with PeerJS, mirroring peer-to-peer
 
@@ -69,3 +69,16 @@ Short ADR-style notes for the choices that shape the app.
 **Why:** simple, deterministic and sufficient for a small band setup. Set list data is self-contained, so entries travel with their parent.
 
 **Cost:** no tombstones; deletions made offline can be reintroduced by a peer snapshot. No merge UI for simultaneous edits. These are documented as v1 limitations.
+
+## ADR-009 — Full screen as a CSS mode, not the Fullscreen API
+
+**Decision:** implement full screen by hiding the app chrome with a CSS class on the song screen, and only
+attempt the native Fullscreen API as a bonus.
+
+**Why:** iOS Safari does not expose the Fullscreen API to non-video content, so the API-based version silently
+did nothing on the iPad — the device the app is built for. A CSS mode works everywhere, including the installed
+PWA, and is trivially mirrored to other devices.
+
+**Cost:** the browser's own chrome (Safari's toolbar) stays visible when running in a tab; the installed
+home-screen app has no browser chrome, so it looks properly full screen there. The mode must also keep safe-area
+insets in mind, which the stylesheet does.

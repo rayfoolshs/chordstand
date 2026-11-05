@@ -79,8 +79,9 @@ Coverage:
 ## Manual test — multi-device mirroring
 
 ### Prerequisites
-- Two or more iPads (or iPads and a Mac) running the deployed HTTPS app, on the **same Wi-Fi**.
-- Local network permission allowed on iOS.
+- Two or more iPads (or iPads and a Mac) running the deployed HTTPS app.
+- Internet for the pairing handshake (the mirroring itself is direct).
+- Camera permission if you want to test QR scanning.
 - Different libraries on each device is the most useful test.
 
 ### Pair
@@ -110,6 +111,7 @@ Coverage:
 - [ ] Scroll a long chart on A; B follows to the same place (and scrolling B moves A).
 - [ ] Tap Scroll on A; B starts autoscrolling the same chart; Pause on either stops both.
 - [ ] Change the key (and capo) on A; B shows the same transposition.
+- [ ] Enter full screen on A; B hides its chrome too, and leaving restores both.
 - [ ] On B, leave the chart and reopen it; it opens with the mirrored key.
 - [ ] With A showing a chart on a changed key, pair device C; C opens the chart at that key.
 - [ ] Open a set list on B; A opens it.
@@ -120,16 +122,15 @@ Coverage:
 
 ### Failure cases
 - [ ] Turn Wi-Fi off on one device mid-session; the other reports a disconnect.
-- [ ] Clear the clipboard, then tap **Paste & continue**; the dialog explains it could not read the clipboard and the paste box still works.
-- [ ] Put the devices on different networks; the host reports "No network path is available" or the connection fails cleanly.
+- [ ] Join with a code nobody is hosting; the dialog says no session is hosting that code.
+- [ ] Join with no internet; the dialog says it could not reach the pairing service.
+- [ ] Stop the host; guests report the session ended and keep their data.
 
 ## Environment note (important)
 
-The automated Chromium used in this development sandbox cannot complete a live WebRTC connection. Pairing now runs through PeerJS, so a real two-device test is required to exercise the handshake; only the merge, relay and sync logic is covered by automated tests.
-
-> No network path is available. Put both devices on the same Wi-Fi and allow local network access.
-
-The signalling codec, dialog flow, protocol messages and mirror merge logic are covered by tests. **The live ICE/NAT path must be verified on two real devices before shipping the mirroring feature.**
+The automated Chromium used in this development sandbox cannot complete a live WebRTC connection, so the
+handshake itself is only exercised on real devices. The merge, relay and sync logic is covered by automated
+tests; pairing was verified manually on two iPads.
 
 ## Bug report template
 
@@ -137,8 +138,8 @@ When reporting a mirroring issue, include:
 
 - iPad model, iPadOS version, Safari version.
 - App URL and whether it was installed to the home screen.
-- Which pairing step (sharing the code, pasting the answer, or opening the link) failed.
+- The 4-digit code used, and whether the host or the joiner failed.
 - The exact on-screen error.
-- Whether both devices were on the same SSID/VLAN and whether "Local Network" permission was granted.
+- Whether both devices had internet for pairing, and whether they were on the same network.
 - Console output if a Mac is attached to Safari Web Inspector.
 - For OnSong backup failures, the table names shown in the import notice.

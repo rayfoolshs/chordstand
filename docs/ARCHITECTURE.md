@@ -14,12 +14,18 @@
       songs, setlists   appearance, keys,      app shell +
                         capo, speed           hashed assets
               │
-              │  direct WebRTC data channel (optional)
+              │  short-lived signalling (PeerJS) to pair
               ▼
-      another Chordstand device on the same Wi-Fi
+      PeerJS public service ── offer/answer ──┐
+              │                               │
+              │  direct WebRTC data channel    │
+              ▼                               │
+      another Chordstand device ◀─────────────┘
 ```
 
-There is no backend. The app is a static bundle; all data is on-device unless devices explicitly pair for mirroring.
+There is no application backend. The app is a static bundle and all data lives on-device. Pairing borrows the
+free public PeerJS signalling service for a few seconds; once the data channel is open, mirroring is direct
+between the devices and the service is no longer involved.
 
 ## Stack
 
@@ -127,6 +133,16 @@ displayChord = transpose(sourceChord, inlineOffset + semitones(songKey → targe
 ## Appearance
 
 `applyAppearance(value)` blends `NIGHT_BG` → `DUSK_BG` → `DAY_BG` on a non-linear ramp. Text colour switches at a background-luminance threshold, and accent/danger/good colours are nudged toward black or white until they meet a contrast target. Panels, lines and muted text are derived from the background and text. CSS consumes only variables, so theme changes are a handful of style writes.
+
+## Centre stage (full screen)
+
+iOS Safari only exposes the Fullscreen API to video, so full screen is an app-level mode rather than a browser
+one: `SongView` adds `is-stage` to `.song-screen`, CSS hides the top bar, the controls strip and the set-list
+footer, and a small fixed exit button plus `Esc` restore them. Safe-area insets are preserved so nothing sits
+under the notch or home indicator. A native `requestFullscreen` is still attempted on browsers that support it.
+
+The flag lives in `SongView` state and is broadcast as `fullscreen`, so entering the mode on one iPad hides the
+chrome on the others.
 
 ## Multi-device mirroring
 
