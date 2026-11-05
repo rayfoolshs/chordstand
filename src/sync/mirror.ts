@@ -24,6 +24,7 @@ let lastSetlists = new Map<string, Setlist>()
 let remoteScrollHandler: ((songId: string, progress: number) => void) | null = null
 let remoteAutoscrollHandler: ((songId: string, active: boolean, speed: number) => void) | null = null
 let remoteTransposeHandler: ((songId: string, key: string, capo: number) => void) | null = null
+let remoteFullscreenHandler: ((active: boolean) => void) | null = null
 let activeTranspose: { songId: string; key: string; capo: number } | null = null
 let incomingTranspose: { songId: string; key: string; capo: number } | null = null
 let lastRemoteViewAt = 0
@@ -184,6 +185,20 @@ export function sendTranspose(songId: string, key: string, capo: number): void {
   broadcast({ t: 'transpose', songId, key, capo })
 }
 
+/**
+ * Register the callback that applies a peer's centre-stage toggle. The song view
+ * installs this while a chart is on screen.
+ */
+export function setRemoteFullscreenHandler(handler: ((active: boolean) => void) | null): void {
+  remoteFullscreenHandler = handler
+}
+
+/** Broadcast the centre-stage toggle so every screen hides its chrome together. */
+export function sendFullscreen(active: boolean): void {
+  if (!peers.length || applyingRemote) return
+  broadcast({ t: 'fullscreen', active })
+}
+
 function broadcast(message: SyncMessage, except?: Peer): void {
   peers.forEach((peer) => {
     if (peer !== except) peer.session.send(message)
@@ -249,6 +264,9 @@ function handleMessage(origin: Peer, message: SyncMessage): void {
     case 'transpose':
       incomingTranspose = { songId: message.songId, key: message.key, capo: message.capo }
       remoteTransposeHandler?.(message.songId, message.key, message.capo)
+      break
+    case 'fullscreen':
+      remoteFullscreenHandler?.(message.active)
       break
     case 'hello':
       break

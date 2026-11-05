@@ -484,6 +484,41 @@ button:disabled {
   background: var(--bg);
 }
 
+/* Centre stage: only the chart, no app chrome. Works on iPad, where the
+   Fullscreen API is unavailable for non-video elements. */
+.song-screen.is-stage .song-topbar,
+.song-screen.is-stage .song-controls,
+.song-screen.is-stage .setlist-bar {
+  display: none;
+}
+
+.song-screen.is-stage .chart-scroll {
+  padding-top: max(10px, env(safe-area-inset-top));
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+}
+
+.stage-exit {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  color: var(--text);
+  opacity: 0.35;
+  transition: opacity 140ms ease;
+}
+
+.stage-exit:hover,
+.stage-exit:focus-visible {
+  opacity: 1;
+}
+
 .song-topbar {
   display: flex;
   align-items: center;

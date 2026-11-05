@@ -36,31 +36,30 @@ export function useWakeLock(active: boolean): void {
   }, [active])
 }
 
-export function useFullscreen() {
-  const isFullscreen = () =>
-    Boolean(document.fullscreenElement) || Boolean((document as Document & { webkitFullscreenElement?: Element }).webkitFullscreenElement)
-
-  const toggle = async () => {
-    const element = document.documentElement as HTMLElement & {
-      webkitRequestFullscreen?: () => Promise<void>
-    }
-    try {
-      if (isFullscreen()) {
-        const exit = document.exitFullscreen as (() => Promise<void>) | undefined
-        const webkitExit = (document as Document & { webkitExitFullscreen?: () => Promise<void> }).webkitExitFullscreen
-        if (exit) await exit.call(document)
-        else if (webkitExit) await webkitExit.call(document)
-      } else if (element.requestFullscreen) {
-        await element.requestFullscreen()
-      } else if (element.webkitRequestFullscreen) {
-        await element.webkitRequestFullscreen()
-      }
-    } catch {
-      // iOS Safari only allows fullscreen for video; the app still works.
-    }
+/**
+ * iOS Safari only allows the Fullscreen API for video, so charts use a CSS
+ * "stage mode" instead and this is just a best-effort extra on desktop.
+ */
+export function requestNativeFullscreen(): void {
+  const element = document.documentElement as HTMLElement & {
+    webkitRequestFullscreen?: () => Promise<void>
   }
+  try {
+    if (element.requestFullscreen) void element.requestFullscreen().catch(() => undefined)
+    else if (element.webkitRequestFullscreen) void element.webkitRequestFullscreen().catch(() => undefined)
+  } catch {
+    // Not supported; stage mode still hides the chrome.
+  }
+}
 
-  return { toggle, isFullscreen }
+export function exitNativeFullscreen(): void {
+  try {
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined)
+    const webkit = (document as Document & { webkitExitFullscreen?: () => Promise<void> }).webkitExitFullscreen
+    if (webkit) void webkit.call(document).catch(() => undefined)
+  } catch {
+    // Nothing to exit.
+  }
 }
 
 interface ScrollOptions {

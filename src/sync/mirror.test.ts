@@ -22,9 +22,11 @@ import {
   addPeer,
   reportActiveTranspose,
   sendAutoscroll,
+  sendFullscreen,
   sendScroll,
   sendTranspose,
   setRemoteAutoscrollHandler,
+  setRemoteFullscreenHandler,
   setRemoteScrollHandler,
   setRemoteTransposeHandler,
   startMirroring,
@@ -213,6 +215,21 @@ describe('mirroring', () => {
     session.onMessage?.({ t: 'view', view: { name: 'song', songId: 'a' } })
 
     expect(wasRemoteViewRecent()).toBe(true)
+  })
+
+  it('broadcasts the centre-stage toggle and applies remote ones', () => {
+    const session = new FakeSession()
+    startMirroring(socket(session), true)
+    session.sent = []
+
+    sendFullscreen(true)
+    expect(session.sent).toContainEqual({ t: 'fullscreen', active: true })
+
+    const applied: boolean[] = []
+    setRemoteFullscreenHandler((active) => applied.push(active))
+    session.onMessage?.({ t: 'fullscreen', active: false })
+    expect(applied).toEqual([false])
+    setRemoteFullscreenHandler(null)
   })
 
   it('relays a guest edit to the other guests when hosting', () => {

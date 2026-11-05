@@ -18,3 +18,4 @@ export type SyncMessage =
   | { t: 'scroll'; songId: string; progress: number }
   | { t: 'autoscroll'; songId: string; active: boolean; speed: number }
   | { t: 'transpose'; songId: string; key: string; capo: number }
+  | { t: 'fullscreen'; active: boolean }

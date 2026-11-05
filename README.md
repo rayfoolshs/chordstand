@@ -117,7 +117,7 @@ Chordstand does **not** download UG pages itself. Their terms and robots rules p
 | Page down / up | `PageDown` / `PageUp`, `ArrowDown` / `ArrowUp` |
 | Next / previous song (at the top/bottom of the chart) | `ArrowRight` / `ArrowLeft` |
 | Scroll to top / bottom | `Home` / `End` |
-| Fullscreen | `F` |
+| Full screen (centre stage) | `F`, `Esc` to leave |
 
 Bluetooth pedals (AirTurn, PageFlip, iRig BlueBoard) present as keyboards on iPadOS, so set the pedal to its keyboard/HID mode and the mappings above work. Web Bluetooth is not available in Mobile Safari.
 
@@ -180,7 +180,7 @@ The parser keeps each song's raw source text, so export is lossless even for con
 - Ultimate Guitar cannot be fetched automatically for legal and technical reasons; the app links to their search and imports what you copy.
 - Inline `{key:}` / `{capo:}` changes are stored but ignored while rendering.
 - Chords-over-lyrics alignment is column-based, exactly like OnSong. Sloppy spacing in the source will show up as sloppy alignment.
-- Fullscreen is desktop-only; iOS Safari does not expose the Fullscreen API for non-video content.
+- Full screen is a chrome-free "centre stage" mode: it hides the top bar, controls and set-list footer so only the chart shows. It works on every device, including the installed iPad app where the Fullscreen API is unavailable, and it is mirrored to the other iPads.
 - Wake lock requires iPadOS 16.4+ and can be affected by WebKit bugs in home-screen mode. Disabling auto-lock in Settings is the reliable fallback.
 
 ## Roadmap

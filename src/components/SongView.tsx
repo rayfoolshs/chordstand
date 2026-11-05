@@ -3,16 +3,24 @@ import type { Setlist, SetlistEntry, Song } from '../core/types'
 import { formatDuration, keyName, keyOptions, parseKey, preferFlatsForPitchClass } from '../core/chords'
 import { downloadText, safeFileName } from '../core/import'
 import { songToOnsong } from '../core/parser'
-import { useAutoscroll, useFullscreen, usePerformanceHotkeys, useWakeLock } from '../hooks/useStage'
+import {
+  exitNativeFullscreen,
+  requestNativeFullscreen,
+  useAutoscroll,
+  usePerformanceHotkeys,
+  useWakeLock,
+} from '../hooks/useStage'
 import { useSettings } from '../store/useSettings'
 import { useStore } from '../store/useStore'
 import { useSync } from '../sync/useSync'
 import {
   reportActiveTranspose,
   sendAutoscroll,
+  sendFullscreen,
   sendScroll,
   sendTranspose,
   setRemoteAutoscrollHandler,
+  setRemoteFullscreenHandler,
   setRemoteScrollHandler,
   setRemoteTransposeHandler,
   wasRemoteViewRecent,
@@ -63,12 +71,14 @@ export function SongView({
   const [showControls, setShowControls] = useState(settings.showControls)
   const [savedToSet, setSavedToSet] = useState(false)
   const [editing, setEditing] = useState(false)
+  /** Centre stage: hides the app chrome so only the chart is on screen. */
+  const [stage, setStage] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const remoteScrollAt = useRef(0)
   const scrollingRef = useRef(false)
   const remoteAutoscrollRef = useRef(false)
-  const { toggle: toggleFullscreen } = useFullscreen()
+  const stageRef = useRef(false)
 
   useWakeLock(scrolling)
   useAutoscroll(scrollRef, {
@@ -84,6 +94,42 @@ export function SongView({
   useEffect(() => {
     scrollingRef.current = scrolling
   }, [scrolling])
+
+  const applyStage = (next: boolean) => {
+    stageRef.current = next
+    setStage(next)
+    if (next) requestNativeFullscreen()
+    else exitNativeFullscreen()
+  }
+
+  const toggleStage = () => {
+    const next = !stageRef.current
+    applyStage(next)
+    sendFullscreen(next)
+  }
+
+  // Escape leaves centre stage, and a harness-only fullscreen exit keeps the
+  // CSS state in step with the browser.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && stageRef.current) toggleStage()
+    }
+    const onFullscreenChange = () => {
+      const active = Boolean(document.fullscreenElement)
+      if (!active && stageRef.current) {
+        stageRef.current = false
+        setStage(false)
+        sendFullscreen(false)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    document.addEventListener('fullscreenchange', onFullscreenChange)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      document.removeEventListener('fullscreenchange', onFullscreenChange)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     void touchSong(song.id)
@@ -123,6 +169,7 @@ export function SongView({
       useSettings.getState().rememberKey(song.id, key)
       useSettings.getState().rememberCapo(song.id, nextCapo)
     })
+    setRemoteFullscreenHandler((active) => applyStage(active))
     // Stateful transposition: when a chart opens, assert this device's key/capo.
     // If the open came from a peer, the buffered transposition is adopted instead
     // of overwriting theirs.
@@ -132,6 +179,7 @@ export function SongView({
       setRemoteScrollHandler(null)
       setRemoteAutoscrollHandler(null)
       setRemoteTransposeHandler(null)
+      setRemoteFullscreenHandler(null)
     }
   }, [song.id])
 
@@ -212,7 +260,7 @@ export function SongView({
       const element = scrollRef.current
       if (element) element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' })
     },
-    onFullscreen: toggleFullscreen,
+    onFullscreen: toggleStage,
   })
 
   const handleScroll = () => {
@@ -270,7 +318,12 @@ export function SongView({
     : targetKey
 
   return (
-    <div className={`song-screen ${scrolling ? 'is-scrolling' : ''}`}>
+    <div className={`song-screen ${scrolling ? 'is-scrolling' : ''} ${stage ? 'is-stage' : ''}`}>
+      {stage ? (
+        <button className="stage-exit" onClick={toggleStage} aria-label="Leave full screen">
+          <Icon name="shrink" size={18} />
+        </button>
+      ) : null}
       <header className="song-topbar">
         <button className="icon-btn" onClick={onBack} aria-label="Back">
           <Icon name="back" />
@@ -377,7 +430,7 @@ export function SongView({
             </button>
           )}
 
-          <button className="icon-btn" onClick={toggleFullscreen} aria-label="Fullscreen">
+          <button className="icon-btn" onClick={toggleStage} aria-label="Full screen">
             <Icon name="expand" />
           </button>
 

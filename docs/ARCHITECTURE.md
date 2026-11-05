@@ -155,6 +155,7 @@ displayChord = transpose(sourceChord, inlineOffset + semitones(songKey → targe
 { t:'scroll', songId, progress }
 { t:'autoscroll', songId, active, speed }
 { t:'transpose', songId, key, capo }
+{ t:'fullscreen', active }
 ```
 
 ### Merge rules
@@ -168,6 +169,7 @@ displayChord = transpose(sourceChord, inlineOffset + semitones(songKey → targe
 - `scroll` carries the current song id and the position as a fraction (0–1) of the scrollable distance, so devices with different screen or font sizes land on the same spot. Sends are throttled to ~16/s with a trailing update, and the view ignores the echo of a programmatic scroll so peers do not loop.
 - `autoscroll` mirrors the start/pause toggle for a song, along with the speed so devices scroll at the same rate. Each device runs its own rAF loop, so while several are autoscrolling the view only corrects drift larger than 1% of the chart instead of fighting the peer's loop; a device that was started remotely does not broadcast a stop when it reaches the end first.
 - `transpose` mirrors the live key and capo chosen in the song view (the per-device stage state, not the set-list entry). The receiver applies it and persists it to its own settings so the chart stays transposed after navigating away. It is stateful: opening a chart asserts the current key/capo, a chart opened by a peer adopts the incoming value instead of asserting (so two devices do not fight), and the host replays its current transposition to a device that joins while the song is open. A late-arriving transposition is buffered and replayed when the chart mounts.
+- `fullscreen` mirrors the centre-stage toggle. The mode is implemented in CSS (hide the top bar, controls and set-list footer) rather than the Fullscreen API, because iOS Safari does not expose that to non-video content; a native request is still attempted on browsers that support it.
 - Set list entries carry their own key/capo/notes, so those travel with the set list.
 
 ### Limitations

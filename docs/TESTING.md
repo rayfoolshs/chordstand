@@ -3,7 +3,7 @@
 ## Automated
 
 ```bash
-npm test           # Vitest, 41 tests
+npm test           # Vitest, 42 tests
 npx tsc --noEmit   # strict typecheck
 npm run build      # typecheck + Vite build + service-worker asset injection
 ```
@@ -46,7 +46,9 @@ Coverage:
 
 ### Stage
 - [ ] Scroll starts, pauses, resumes; progress bar advances.
-- [ ] Space toggles scroll, arrows/PageUp/PageDown page, Home/End jump, `F` fullscreen on desktop.
+- [ ] Space toggles scroll, arrows/PageUp/PageDown page, Home/End jump, `F` enters full screen, `Esc` leaves it.
+- [ ] Full screen hides the top bar, controls and set-list footer and leaves only the chart; the small exit button restores them.
+- [ ] Enter full screen on one mirrored iPad; the others hide their chrome too, and leaving restores them.
 - [ ] Wake lock is requested while scrolling (check the browser's screen-lock behaviour on iPad).
 
 ### Appearance
