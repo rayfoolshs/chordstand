@@ -86,6 +86,8 @@ class SyncManager {
 
   async acceptAnswer(code: string): Promise<void> {
     if (!this.pending) return
+    const current = useSync.getState()
+    if (current.status === 'connecting' || current.status === 'connected') return
     useSync.getState().patch({ status: 'connecting', error: '' })
     try {
       await this.pending.acceptAnswer(code)
@@ -104,7 +106,7 @@ class SyncManager {
   async autoReadClipboard(): Promise<void> {
     const state = useSync.getState()
     const hosting = state.mode === 'host' && state.status === 'waiting' && !!state.code && !!this.pending
-    const joining = state.mode === 'join' && state.status === 'waiting' && !state.code
+    const joining = state.mode === 'join' && state.status === 'waiting' && !state.code && !this.pending
     if (!hosting && !joining) return
 
     const now = Date.now()

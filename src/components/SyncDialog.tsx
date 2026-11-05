@@ -291,7 +291,13 @@ function HostPanel({
       <div className="sync-step">
         <h3>2. Paste their answer</h3>
         {status === 'connecting' ? (
-          <p className="sync-wait">Connecting…</p>
+          <>
+            <p className="sync-wait">Connecting…</p>
+            <p className="fine-print">
+              Both iPads must be on the same Wi-Fi with Local Network access allowed. If this hangs, tap
+              Cancel and start again.
+            </p>
+          </>
         ) : (
           <>
             <p className="muted small">They send their answer back the same way. Paste it here to connect.</p>

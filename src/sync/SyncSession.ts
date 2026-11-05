@@ -15,6 +15,8 @@ export class SyncSession {
   private pc: RTCPeerConnection
   private channel: RTCDataChannel | null = null
   private closed = false
+  private opened = false
+  private connectTimer: number | null = null
 
   onMessage?: (message: SyncMessage) => void
   onStatus?: (status: SessionStatus, detail?: string) => void
@@ -28,20 +30,46 @@ export class SyncSession {
       switch (this.pc.connectionState) {
         case 'connecting':
           this.onStatus?.('connecting')
+          // If ICE/DTLS never completes, give up with an actionable message
+          // instead of leaving the UI stuck on "Connecting…".
+          this.armConnectTimeout()
           break
         case 'connected':
+          this.clearConnectTimeout()
           this.onStatus?.('connected')
           break
         case 'disconnected':
+          this.clearConnectTimeout()
           this.onStatus?.('disconnected', 'The connection dropped. Try moving closer to the other device.')
           break
         case 'failed':
+          this.clearConnectTimeout()
           this.onStatus?.('failed', 'Could not connect. Both devices need to be on the same network.')
           break
         case 'closed':
+          this.clearConnectTimeout()
           this.onStatus?.('disconnected')
           break
       }
+    }
+  }
+
+  private armConnectTimeout(): void {
+    this.clearConnectTimeout()
+    this.connectTimer = window.setTimeout(() => {
+      this.connectTimer = null
+      if (this.closed || this.opened) return
+      this.onStatus?.(
+        'failed',
+        'Could not reach the other device. Check both iPads are on the same Wi-Fi, allow Local Network access, then start again.',
+      )
+    }, 25000)
+  }
+
+  private clearConnectTimeout(): void {
+    if (this.connectTimer !== null) {
+      window.clearTimeout(this.connectTimer)
+      this.connectTimer = null
     }
   }
 
@@ -78,6 +106,7 @@ export class SyncSession {
 
   close(): void {
     this.closed = true
+    this.clearConnectTimeout()
     try {
       this.channel?.close()
     } catch {
@@ -112,6 +141,8 @@ export class SyncSession {
 
     channel.onopen = () => {
       if (this.closed) return
+      this.opened = true
+      this.clearConnectTimeout()
       this.onStatus?.('connected')
       this.onOpen?.()
     }
