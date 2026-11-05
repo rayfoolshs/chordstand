@@ -134,12 +134,12 @@ displayChord = transpose(sourceChord, inlineOffset + semitones(songKey → targe
 
 1. Host creates a WebRTC offer and waits for ICE gathering (6 s cap).
 2. The offer is compressed with zlib, base64url-encoded and prefixed `CS1.`.
-3. The code is shown as a QR (and a text code fallback).
-4. Guest scans/pastes it, sets the remote offer, creates an answer, and shows its own `CS1.` code.
-5. Host scans/pastes the answer. The data channel opens and the guest joins the session.
+3. The code is shown as text, with Copy and Share (a share link carries it as `#pair=`).
+4. Guest pastes or opens it, sets the remote offer, creates an answer, and shows its own `CS1.` code.
+5. Host pastes the answer. The data channel opens and the guest joins the session.
 6. The host repeats steps 1–5 for each extra device; each guest pairs with the host once.
 
-The `CS1.` codec lives in `src/sync/protocol.ts`; the peer connection in `src/sync/SyncSession.ts`. No STUN/TURN account is required, but public STUN servers are listed for better reachability. If no ICE candidates are produced, the app reports "No network path is available" instead of showing a dead QR.
+The `CS1.` codec lives in `src/sync/protocol.ts`; the peer connection in `src/sync/SyncSession.ts`. No STUN/TURN account is required, but public STUN servers are listed for better reachability. If no ICE candidates are produced, the app reports "No network path is available" instead of showing a dead code.
 
 The host holds one `SyncSession` per guest; guests hold one. `src/sync/mirror.ts` keeps a list of peers, and the host relays every guest's message to the others so the whole group converges.
 
@@ -194,7 +194,7 @@ src/
   store/       Dexie schema, app store, settings, theme engine
   hooks/       autoscroll, wake lock, fullscreen, pedal hotkeys
   sync/        protocol codec, WebRTC session, mirror engine, manager/UI state
-  components/  Library, SongView, Setlists, Import, editors, sync dialog, QR scanner
+  components/  Library, SongView, Setlists, Import, editors, sync dialog
   styles/      single stylesheet driven by CSS variables
 docs/          build plan, architecture, testing, decisions
 scripts/       icon generation, service-worker asset injection

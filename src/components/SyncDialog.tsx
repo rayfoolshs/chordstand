@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSync } from '../sync/useSync'
 import { syncManager } from '../sync/manager'
 import { summariseSignal } from '../sync/protocol'
@@ -6,7 +6,6 @@ import { readLastSession, type LastSession } from '../sync/remember'
 import { useStore } from '../store/useStore'
 import { Icon } from './Icon'
 import { Modal } from './Modal'
-import { QrScanner } from './QrScanner'
 
 export function SyncDialog() {
   const open = useSync((state) => state.open)
@@ -23,10 +22,11 @@ export function SyncDialog() {
   const setlists = useStore((state) => state.setlists.length)
 
   const [paste, setPaste] = useState('')
-  const [scanTarget, setScanTarget] = useState<'offer' | 'answer' | null>(null)
-  const [scanStream, setScanStream] = useState<MediaStream | null>(null)
   const [copied, setCopied] = useState(false)
+  const [shared, setShared] = useState(false)
   const [last, setLast] = useState<LastSession | null>(null)
+
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
   useEffect(() => {
     if (open) setLast(readLastSession())
@@ -34,15 +34,24 @@ export function SyncDialog() {
 
   useEffect(() => {
     if (!open) {
-      scanStream?.getTracks().forEach((track) => track.stop())
-      setScanStream(null)
       setPaste('')
-      setScanTarget(null)
       setCopied(false)
+      setShared(false)
       useSync.getState().patch({ notice: '' })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
+
+  // A shared pairing link arrives as #pair=<offer>. Open the dialog and join
+  // straight away, so the host only has to send one link.
+  useEffect(() => {
+    const match = window.location.hash.match(/pair=([^&]+)/)
+    if (!match) return
+    const value = decodeURIComponent(match[1])
+    history.replaceState(null, '', window.location.pathname + window.location.search)
+    useSync.getState().setOpen(true)
+    void syncManager.joinWithOffer(value, { copyAnswer: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const copy = async (value: string) => {
     try {
@@ -54,8 +63,33 @@ export function SyncDialog() {
     }
   }
 
-  // Read the pairing code straight from the clipboard so a device can connect
-  // with one tap instead of scanning. Falls back to the manual paste box.
+  // Host offers share as a link that auto-joins; guest answers share as text.
+  const share = async (value: string, kind: 'offer' | 'answer') => {
+    const link = `${window.location.origin}${window.location.pathname}#pair=${encodeURIComponent(value)}`
+    try {
+      if (canShare) {
+        await navigator.share(
+          kind === 'offer'
+            ? {
+                title: 'Chordstand session',
+                text: 'Join my Chordstand session: open this link, or paste the code into Join a session.',
+                url: link,
+              }
+            : { title: 'Chordstand answer code', text: value },
+        )
+        setShared(true)
+        window.setTimeout(() => setShared(false), 1600)
+        return
+      }
+      await navigator.clipboard.writeText(kind === 'offer' ? link : value)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1600)
+    } catch {
+      // The share sheet was dismissed; nothing to do.
+    }
+  }
+
+  // Read a code straight from the clipboard and use it, with no typing.
   const pasteFromClipboard = async (run: (value: string) => void) => {
     let text = ''
     try {
@@ -65,7 +99,7 @@ export function SyncDialog() {
     }
     if (!text) {
       useSync.getState().patch({
-        notice: 'Could not read the clipboard. Open “Paste code instead” and paste it there.',
+        notice: 'Could not read the clipboard. Paste the code into the box instead.',
       })
       return
     }
@@ -74,146 +108,108 @@ export function SyncDialog() {
     run(text)
   }
 
-  // Ask for the camera directly from the tap. iOS only honours getUserMedia
-  // inside a live user gesture, so we cannot wait for the scanner to mount.
-  const beginScan = async (target: 'offer' | 'answer') => {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      useSync.getState().patch({ notice: 'Camera access is unavailable here. Use “Paste code instead”.' })
-      return
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
-        audio: false,
-      })
-      setScanStream(stream)
-      setScanTarget(target)
-    } catch {
-      useSync.getState().patch({
-        notice: 'Could not open the camera. Allow camera access and try again, or use “Paste code instead”.',
-      })
-    }
-  }
-
-  const stopScan = () => {
-    scanStream?.getTracks().forEach((track) => track.stop())
-    setScanStream(null)
-    setScanTarget(null)
-  }
-
-  const handleScan = (value: string) => {
-    const target = scanTarget
-    stopScan()
-    setPaste('')
-    if (target === 'offer') void syncManager.joinWithOffer(value)
-    else void syncManager.acceptAnswer(value)
-  }
-
   return (
     <Modal open={open} title="Mirror devices" onClose={() => setOpen(false)} wide>
-      {scanTarget ? (
-        <QrScanner stream={scanStream} onResult={handleScan} onCancel={stopScan} />
-      ) : (
-        <div className="sync-dialog">
-          {status === 'connected' ? (
-            <ConnectedPanel
-              songs={songs}
-              setlists={setlists}
-              peerCount={peerCount}
-              canAdd={mode === 'host'}
-              onAdd={() => void syncManager.addDevice()}
-            />
-          ) : mode === 'idle' ? (
-            <>
-              <p className="muted">
-                Open Chordstand on the other iPad and connect the two. Songs, set lists and the current screen
-                mirror live over your local network — no server, no account.
-              </p>
-              {last ? (
-                <button className="sync-reconnect" onClick={() => void syncManager.reconnect()}>
-                  <span className="sync-option-icon">
-                    <Icon name="refresh" size={22} />
-                  </span>
-                  <span className="sync-reconnect-text">
-                    <strong>Reconnect to last device</strong>
-                    <em>Resume as {last.role === 'host' ? 'the host' : 'the joiner'} without choosing again.</em>
-                  </span>
-                </button>
-              ) : null}
-              <div className="sync-choice">
-                <button className="sync-option" onClick={() => void syncManager.startHost()}>
-                  <span className="sync-option-icon">
-                    <Icon name="link" size={22} />
-                  </span>
-                  <strong>Host this session</strong>
-                  <em>Show a QR code for the other device to scan.</em>
-                </button>
-                <button className="sync-option" onClick={() => syncManager.beginJoin()}>
-                  <span className="sync-option-icon">
-                    <Icon name="camera" size={22} />
-                  </span>
-                  <strong>Join a session</strong>
-                  <em>Scan the host's code, or paste it.</em>
-                </button>
-              </div>
-              {status === 'failed' && error ? <p className="sync-error">{error}</p> : null}
-              <p className="fine-print">
-                Both devices must be on the same Wi-Fi. The connection is direct and encrypted.
-              </p>
-              <p className="fine-print">
-                No camera? Every step also works by copying the code on one iPad and pasting it on the other.
-                On the same Apple ID, Universal Clipboard carries it across for you.
-              </p>
-            </>
-          ) : (
-            <>
-              {error ? <p className="sync-error">{error}</p> : null}
-              {notice ? <p className="sync-notice">{notice}</p> : null}
-              {mode === 'host' && adding ? (
-                <p className="fine-print">
-                  {peerCount} {peerCount === 1 ? 'device is' : 'devices are'} already mirrored. Pair the new
-                  one the same way, and it joins the session.
-                </p>
-              ) : null}
-
-              {mode === 'host' ? (
-                <HostPanel
-                  status={status}
-                  code={code}
-                  copied={copied}
-                  paste={paste}
-                  onPaste={setPaste}
-                  onCopy={() => void copy(code)}
-                  onScan={() => void beginScan('answer')}
-                  onAnswer={(value) => void syncManager.acceptAnswer(value)}
-                  onPasteConnect={() => void pasteFromClipboard((value) => syncManager.acceptAnswer(value))}
-                  onRetry={() => void syncManager.startHost()}
-                />
-              ) : (
-                <JoinPanel
-                  status={status}
-                  code={code}
-                  copied={copied}
-                  paste={paste}
-                  onPaste={setPaste}
-                  onCopy={() => void copy(code)}
-                  onScan={() => void beginScan('offer')}
-                  onOffer={(value) => void syncManager.joinWithOffer(value)}
-                  onPasteConnect={() => void pasteFromClipboard((value) => syncManager.joinWithOffer(value))}
-                  onRetry={() => syncManager.beginJoin()}
-                />
-              )}
-
-              <button
-                className="text-button"
-                onClick={() => (adding ? syncManager.cancelPending() : syncManager.disconnect())}
-              >
-                {adding ? 'Cancel adding' : 'Cancel'}
+      <div className="sync-dialog">
+        {status === 'connected' ? (
+          <ConnectedPanel
+            songs={songs}
+            setlists={setlists}
+            peerCount={peerCount}
+            canAdd={mode === 'host'}
+            onAdd={() => void syncManager.addDevice()}
+          />
+        ) : mode === 'idle' ? (
+          <>
+            <p className="muted">
+              Open Chordstand on the other iPad and connect the two. Songs, set lists and the current screen
+              mirror live over your local network — no server, no account.
+            </p>
+            {last ? (
+              <button className="sync-reconnect" onClick={() => void syncManager.reconnect()}>
+                <span className="sync-option-icon">
+                  <Icon name="refresh" size={22} />
+                </span>
+                <span className="sync-reconnect-text">
+                  <strong>Reconnect to last device</strong>
+                  <em>Resume as {last.role === 'host' ? 'the host' : 'the joiner'} without choosing again.</em>
+                </span>
               </button>
-            </>
-          )}
-        </div>
-      )}
+            ) : null}
+            <div className="sync-choice">
+              <button className="sync-option" onClick={() => void syncManager.startHost()}>
+                <span className="sync-option-icon">
+                  <Icon name="link" size={22} />
+                </span>
+                <strong>Host this session</strong>
+                <em>Share a code or link; the other iPad pastes it to join.</em>
+              </button>
+              <button className="sync-option" onClick={() => syncManager.beginJoin()}>
+                <span className="sync-option-icon">
+                  <Icon name="copy" size={22} />
+                </span>
+                <strong>Join a session</strong>
+                <em>Paste the code or link the host shared.</em>
+              </button>
+            </div>
+            {status === 'failed' && error ? <p className="sync-error">{error}</p> : null}
+            <p className="fine-print">Both devices must be on the same Wi-Fi. The connection is direct and encrypted.</p>
+            <p className="fine-print">
+              On the same Apple ID, Universal Clipboard carries a copied code between the iPads automatically.
+            </p>
+          </>
+        ) : (
+          <>
+            {error ? <p className="sync-error">{error}</p> : null}
+            {notice ? <p className="sync-notice">{notice}</p> : null}
+            {mode === 'host' && adding ? (
+              <p className="fine-print">
+                {peerCount} {peerCount === 1 ? 'device is' : 'devices are'} already mirrored. Pair the new one
+                the same way, and it joins the session.
+              </p>
+            ) : null}
+
+            {mode === 'host' ? (
+              <HostPanel
+                status={status}
+                code={code}
+                copied={copied}
+                shared={shared}
+                canShare={canShare}
+                paste={paste}
+                onPaste={setPaste}
+                onCopy={() => void copy(code)}
+                onShare={() => void share(code, 'offer')}
+                onAnswer={(value) => void syncManager.acceptAnswer(value)}
+                onPasteConnect={() => void pasteFromClipboard((value) => syncManager.acceptAnswer(value))}
+                onRetry={() => void syncManager.startHost()}
+              />
+            ) : (
+              <JoinPanel
+                status={status}
+                code={code}
+                copied={copied}
+                shared={shared}
+                canShare={canShare}
+                paste={paste}
+                onPaste={setPaste}
+                onCopy={() => void copy(code)}
+                onShare={() => void share(code, 'answer')}
+                onOffer={(value) => void syncManager.joinWithOffer(value)}
+                onPasteConnect={() => void pasteFromClipboard((value) => syncManager.joinWithOffer(value))}
+                onRetry={() => syncManager.beginJoin()}
+              />
+            )}
+
+            <button
+              className="text-button"
+              onClick={() => (adding ? syncManager.cancelPending() : syncManager.disconnect())}
+            >
+              {adding ? 'Cancel adding' : 'Cancel'}
+            </button>
+          </>
+        )}
+      </div>
     </Modal>
   )
 }
@@ -222,10 +218,12 @@ function HostPanel({
   status,
   code,
   copied,
+  shared,
+  canShare,
   paste,
   onPaste,
   onCopy,
-  onScan,
+  onShare,
   onAnswer,
   onPasteConnect,
   onRetry,
@@ -233,10 +231,12 @@ function HostPanel({
   status: string
   code: string
   copied: boolean
+  shared: boolean
+  canShare: boolean
   paste: string
   onPaste: (value: string) => void
   onCopy: () => void
-  onScan: () => void
+  onShare: () => void
   onAnswer: (value: string) => void
   onPasteConnect: () => void
   onRetry: () => void
@@ -259,59 +259,39 @@ function HostPanel({
   return (
     <div className="stack">
       <div className="sync-step">
-        <h3>1. Scan this on the other device</h3>
-        <QrCode value={code} />
-        <p className="muted small">
-          On the other iPad choose <strong>Join a session</strong> and point its camera here — or tap{' '}
-          <strong>Copy code</strong> and paste it there instead.
-        </p>
-        <div className="sync-actions">
-          <button className="ghost-button" onClick={onCopy}>
-            <Icon name={copied ? 'check' : 'copy'} size={17} />
-            {copied ? 'Copied' : 'Copy code'}
-          </button>
-          <span className="fine-print">{summariseSignal(code)}</span>
-        </div>
+        <h3>1. Share this with the other iPad</h3>
+        <PairCode value={code} copied={copied} shared={shared} canShare={canShare} onCopy={onCopy} onShare={onShare} />
         <p className="fine-print">
-          On the same Apple ID, Universal Clipboard puts the copied code straight onto the other iPad.
+          On the other iPad, choose <strong>Join a session</strong> and paste the code. Sharing the link lets
+          them tap it instead. On the same Apple ID, the copied code appears there automatically.
         </p>
       </div>
 
       <div className="sync-step">
-        <h3>2. Scan or paste their answer</h3>
+        <h3>2. Paste their answer</h3>
         {status === 'connecting' ? (
           <p className="sync-wait">Connecting…</p>
         ) : (
           <>
-            <p className="muted small">
-              After they join, their screen shows a second code. Scan it here, or paste it if they copied it.
-            </p>
+            <p className="muted small">After they join, they share a second code. Paste it here to connect.</p>
+            <textarea
+              rows={3}
+              value={paste}
+              onChange={(event) => onPaste(event.target.value)}
+              placeholder="CS1.…"
+              spellCheck={false}
+            />
             <div className="sync-actions">
-              <button className="primary-button" onClick={onScan}>
-                <Icon name="camera" size={18} />
-                Scan answer
-              </button>
-              <button className="ghost-button" onClick={onPasteConnect}>
-                <Icon name="copy" size={17} />
+              <button className="primary-button" onClick={onPasteConnect}>
+                <Icon name="copy" size={18} />
                 Paste answer &amp; connect
+              </button>
+              <button className="ghost-button" disabled={!paste.trim()} onClick={() => onAnswer(paste.trim())}>
+                Connect
               </button>
             </div>
           </>
         )}
-
-        <details className="sync-fallback">
-          <summary>Paste the answer code instead</summary>
-          <textarea
-            rows={3}
-            value={paste}
-            onChange={(event) => onPaste(event.target.value)}
-            placeholder="CS1.…"
-            spellCheck={false}
-          />
-          <button className="ghost-button" disabled={!paste.trim()} onClick={() => onAnswer(paste.trim())}>
-            Connect
-          </button>
-        </details>
       </div>
     </div>
   )
@@ -321,10 +301,12 @@ function JoinPanel({
   status,
   code,
   copied,
+  shared,
+  canShare,
   paste,
   onPaste,
   onCopy,
-  onScan,
+  onShare,
   onOffer,
   onPasteConnect,
   onRetry,
@@ -332,10 +314,12 @@ function JoinPanel({
   status: string
   code: string
   copied: boolean
+  shared: boolean
+  canShare: boolean
   paste: string
   onPaste: (value: string) => void
   onCopy: () => void
-  onScan: () => void
+  onShare: () => void
   onOffer: (value: string) => void
   onPasteConnect: () => void
   onRetry: () => void
@@ -359,24 +343,10 @@ function JoinPanel({
     return (
       <div className="stack">
         <div className="sync-step">
-          <h3>Scan or paste the host code</h3>
+          <h3>Paste the host code</h3>
           <p className="muted small">
-            Point this camera at the QR code on the other device, or paste the code it copied.
+            Paste the code the host shared. If they sent a link, opening it joins automatically.
           </p>
-          <div className="sync-actions">
-            <button className="primary-button" onClick={onScan}>
-              <Icon name="camera" size={18} />
-              Scan host code
-            </button>
-            <button className="ghost-button" onClick={onPasteConnect}>
-              <Icon name="copy" size={17} />
-              Paste host code &amp; continue
-            </button>
-          </div>
-        </div>
-
-        <details className="sync-fallback">
-          <summary>Paste the host code instead</summary>
           <textarea
             rows={3}
             value={paste}
@@ -384,10 +354,16 @@ function JoinPanel({
             placeholder="CS1.…"
             spellCheck={false}
           />
-          <button className="ghost-button" disabled={!paste.trim()} onClick={() => onOffer(paste.trim())}>
-            Continue
-          </button>
-        </details>
+          <div className="sync-actions">
+            <button className="primary-button" onClick={onPasteConnect}>
+              <Icon name="copy" size={18} />
+              Paste &amp; continue
+            </button>
+            <button className="ghost-button" disabled={!paste.trim()} onClick={() => onOffer(paste.trim())}>
+              Continue
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
@@ -395,21 +371,54 @@ function JoinPanel({
   return (
     <div className="stack">
       <div className="sync-step">
-        <h3>Show this to the host</h3>
-        <QrCode value={code} />
-        <p className="muted small">
-          Have the host scan this answer code, or tap <strong>Copy code</strong> so they can paste it. The
-          session connects as soon as they do.
+        <h3>Share this answer with the host</h3>
+        <PairCode value={code} copied={copied} shared={shared} canShare={canShare} onCopy={onCopy} onShare={onShare} />
+        <p className="fine-print">
+          The host pastes this code to finish connecting. On the same Apple ID, it reaches them automatically.
         </p>
-        <div className="sync-actions">
-          <button className="ghost-button" onClick={onCopy}>
-            <Icon name={copied ? 'check' : 'copy'} size={17} />
-            {copied ? 'Copied' : 'Copy code'}
-          </button>
-          <span className="fine-print">{summariseSignal(code)}</span>
-        </div>
       </div>
-      <p className="sync-wait">Waiting for the host to scan…</p>
+      <p className="sync-wait">Waiting for the host to connect…</p>
+    </div>
+  )
+}
+
+function PairCode({
+  value,
+  copied,
+  shared,
+  canShare,
+  onCopy,
+  onShare,
+}: {
+  value: string
+  copied: boolean
+  shared: boolean
+  canShare: boolean
+  onCopy: () => void
+  onShare: () => void
+}) {
+  return (
+    <div className="pair-code-wrap">
+      <textarea
+        className="pair-code"
+        readOnly
+        rows={3}
+        value={value}
+        onFocus={(event) => event.currentTarget.select()}
+      />
+      <div className="sync-actions">
+        <button className="ghost-button" onClick={onCopy}>
+          <Icon name={copied ? 'check' : 'copy'} size={17} />
+          {copied ? 'Copied' : 'Copy code'}
+        </button>
+        {canShare ? (
+          <button className="ghost-button" onClick={onShare}>
+            <Icon name={shared ? 'check' : 'upload'} size={17} />
+            {shared ? 'Shared' : 'Share'}
+          </button>
+        ) : null}
+        <span className="fine-print">{summariseSignal(value)}</span>
+      </div>
     </div>
   )
 }
@@ -451,47 +460,6 @@ function ConnectedPanel({
       <button className="danger-button" onClick={() => syncManager.disconnect()}>
         Stop mirroring
       </button>
-    </div>
-  )
-}
-
-function QrCode({ value }: { value: string }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    void import('qrcode')
-      .then(({ toCanvas }) => {
-        if (cancelled || !canvasRef.current) return
-        return toCanvas(canvasRef.current, value, {
-          width: 300,
-          margin: 1,
-          errorCorrectionLevel: 'L',
-          color: { dark: '#0b0d10', light: '#ffffff' },
-        })
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [value])
-
-  return (
-    <div className="qr-wrap">
-      <div className="qr-box">
-        {failed ? (
-          <p className="muted small">QR code unavailable. Use the text code below.</p>
-        ) : (
-          <canvas ref={canvasRef} aria-label="Pairing QR code" />
-        )}
-      </div>
-      <details className="sync-fallback">
-        <summary>Show text code</summary>
-        <textarea className="pair-code" readOnly rows={3} value={value} onFocus={(event) => event.currentTarget.select()} />
-      </details>
     </div>
   )
 }

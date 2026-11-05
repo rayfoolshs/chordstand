@@ -40,7 +40,7 @@ function fromBase64Url(value: string): Uint8Array {
   return bytes
 }
 
-/** Compress an SDP offer/answer into a copy-paste/QR friendly string. */
+/** Compress an SDP offer/answer into a copy-paste friendly string. */
 export function encodeSignal(description: RTCSessionDescriptionInit): string {
   if (!description.sdp) throw new Error('Missing session description')
   const payload: SignalPayload = {
@@ -59,7 +59,7 @@ export function decodeSignal(code: string): SignalPayload {
   try {
     payload = JSON.parse(strFromU8(unzlibSync(fromBase64Url(match[0].slice(PREFIX.length))))) as SignalPayload
   } catch {
-    throw new Error('The pairing code is damaged. Try scanning it again.')
+    throw new Error('The pairing code is damaged. Try copying it again.')
   }
 
   if (!payload?.sdp || !['offer', 'answer'].includes(payload.type)) {

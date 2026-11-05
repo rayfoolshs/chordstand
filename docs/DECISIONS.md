@@ -10,11 +10,11 @@ Short ADR-style notes for the choices that shape the app.
 
 **Cost:** no automatic cross-device sync (mirroring is explicit), storage lives with the browser, and Safari can evict non-installed storage.
 
-## ADR-002 — Mirroring over WebRTC, paired by QR
+## ADR-002 — Mirroring over WebRTC, paired without a server
 
-**Decision:** use a direct WebRTC data channel with offline SDP exchange. Pair with two QR scans, with copy/paste text codes as a fallback. No signalling server. One iPad hosts and the others join it; the host relays messages between the guests (hub-and-spoke).
+**Decision:** use a direct WebRTC data channel with offline SDP exchange. Pair by sharing the code (copy/paste or the share sheet, with a `#pair=` link that auto-joins). No signalling server. One iPad hosts and the others join it; the host relays messages between the guests (hub-and-spoke).
 
-**Why:** the requirement was devices on the same network, with no infrastructure. WebRTC is encrypted, browser-native, and works without an account. QR removes the need to type SDP.
+**Why:** the requirement was devices on the same network, with no infrastructure. WebRTC is encrypted, browser-native, and works without an account. Sharing the code removes the need to type SDP, and dropping the camera avoids iOS camera-permission and gesture problems.
 
 **Cost:** pairing is a deliberate two-step ceremony per device; ICE can fail on locked-down networks; the host is a single point of failure and a handful of devices is the practical limit; the implementation cannot be verified in a browser environment that exposes no ICE candidates.
 

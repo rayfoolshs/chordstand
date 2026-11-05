@@ -8,7 +8,7 @@ A local-first chord chart and set list app for working musicians. Built as a bet
 - **Per-set key and capo**: the song stays in its original key; each set list entry can be transposed or capo'd independently.
 - **Stage controls**: autoscroll, font sizing, lyrics-only mode, fullscreen, and keyboard/Bluetooth page-turner support.
 - **Night → daylight slider**: blend the whole interface continuously, with a one-tap dark/light toggle in the library header and song controls.
-- **Mirror multiple devices**: pair iPads over the local network with a QR code or a pasted code; one hosts, the others join, and songs, set lists and the current screen stay in sync with no server.
+- **Mirror multiple devices**: pair iPads over the local network with a pasted code or a shared link; one hosts, the others join, and songs, set lists and the current screen stay in sync with no server.
 - **Bring in chords from the web**: search Ultimate Guitar from the Import screen, copy a chart and paste it straight in (or use the clipboard button).
 - **Offline PWA**: installs to the iPad home screen, works with no network, keeps the screen awake while scrolling.
 - **No accounts, no subscription, no server**. Everything is stored in the browser's IndexedDB on your device.
@@ -23,7 +23,7 @@ npm run build      # production build in dist/
 npm run preview    # serve the production build
 ```
 
-Deploy `dist/` to any static host (Cloudflare Pages, Netlify, Vercel, GitHub Pages at a domain root). The service worker, manifest and icons follow Vite's base path, so both root hosting and a GitHub Pages project subpath such as `/chordstand/` work. HTTPS is required for PWA installation, wake lock and camera QR scanning.
+Deploy `dist/` to any static host (Cloudflare Pages, Netlify, Vercel, GitHub Pages at a domain root). The service worker, manifest and icons follow Vite's base path, so both root hosting and a GitHub Pages project subpath such as `/chordstand/` work. HTTPS is required for PWA installation and wake lock.
 
 This repo deploys itself to GitHub Pages on every push to `main` via `.github/workflows/deploy.yml`. The workflow sets `PAGES_BASE` to the repository name, runs the tests, builds, and publishes `dist/`.
 
@@ -77,14 +77,14 @@ PDFs and scanned images are **not** supported yet. Inline `{key:}` and `{capo:}`
 Chordstand instances can mirror directly over the local network — no accounts, no relay, no internet. One iPad is the **host**; any number of others **join** it (the host relays changes between them).
 
 1. Put the devices on the same Wi-Fi.
-2. On device A: **link icon → Host this session**. A QR code appears.
-3. On device B: **link icon → Join a session → Scan host code**, and point the camera at A.
-4. B shows an answer QR. Scan it on A with **Scan answer**. The link icon turns green when connected.
+2. On device A: **link icon → Host this session**. A pairing code appears.
+3. On device B: **link icon → Join a session** and paste the code — or tap **Share** on A and open the link on B, which joins automatically.
+4. B shows an answer code. Paste it on A with **Paste answer & connect**. The link icon turns green when connected.
 5. To add a third device, A taps **Add another device** in the connected panel and repeats steps 3–4. Each extra device pairs with the host once.
 
-Camera scanning needs HTTPS (the installed PWA qualifies). If the camera is unavailable, every step also works by copy and paste: tap **Copy code** on one iPad and **Paste host code** / **Paste answer & connect** on the other. On the same Apple ID, Universal Clipboard carries the code across automatically, so no typing is needed.
+There is no QR code and no camera: the code is exchanged by copy/paste or the share sheet (AirDrop, Messages). On the same Apple ID, **Universal Clipboard** carries a copied code straight onto the other iPad, so it is one tap each way and no typing.
 
-Chordstand remembers whether this iPad hosted or joined last time. **Reconnect to last device** resumes that role in one tap per device, reusing the clipboard so you often do not scan at all.
+Chordstand remembers whether this iPad hosted or joined last time. **Reconnect to last device** resumes that role in one tap per device, reusing the clipboard.
 
 Once connected:
 
@@ -97,7 +97,7 @@ Once connected:
 - Closing the dialog keeps the session running; the header link icon stays green. **Stop mirroring** ends it.
 - The data channel is encrypted (DTLS) and direct. Every app must stay open.
 
-iOS asks for local network and camera permission the first time. If the host reports *"No network path is available"*, allow local network access or check that both devices really are on the same Wi-Fi.
+If the host reports *"No network path is available"*, check that both devices really are on the same Wi-Fi and allow local network access when iOS asks.
 
 ## Searching Ultimate Guitar
 
@@ -176,7 +176,7 @@ The parser keeps each song's raw source text, so export is lossless even for con
 ## Known limitations
 
 - PDF/image charts, backing tracks, MIDI and projection are not implemented.
-- Mirroring is LAN-only and hub-and-spoke: one host relays to the guests, so the host is a single point of failure and a handful of devices is the practical limit. It needs camera/local-network permission for QR pairing, and the live ICE path still needs verification on physical devices (see [Testing](docs/TESTING.md)).
+- Mirroring is LAN-only and hub-and-spoke: one host relays to the guests, so the host is a single point of failure and a handful of devices is the practical limit. It needs local-network permission and the live ICE path still needs verification on physical devices (see [Testing](docs/TESTING.md)).
 - Mirroring conflicts are last-write-wins; a song deleted offline can be reintroduced by a peer's snapshot.
 - Ultimate Guitar cannot be fetched automatically for legal and technical reasons; the app links to their search and imports what you copy.
 - Inline `{key:}` / `{capo:}` changes are stored but ignored while rendering.

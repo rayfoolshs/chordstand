@@ -9,7 +9,7 @@ const ICE_SERVERS: RTCIceServer[] = [
 
 /**
  * A direct WebRTC session between two Chordstand devices. SDP is exchanged
- * out of band (QR code) so there is no signalling server to host.
+ * out of band (shared code) so there is no signalling server to host.
  */
 export class SyncSession {
   private pc: RTCPeerConnection
@@ -66,7 +66,7 @@ export class SyncSession {
 
   async acceptAnswer(code: string): Promise<void> {
     const description = decodeSignal(code)
-    if (description.type !== 'answer') throw new Error('That is an offer code. Scan the host device first.')
+    if (description.type !== 'answer') throw new Error('That is an offer code. Use the host device.')
     await this.pc.setRemoteDescription({ type: 'answer', sdp: description.sdp })
   }
 

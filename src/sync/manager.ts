@@ -77,7 +77,7 @@ class SyncManager {
     this.beginJoin()
     useSync.getState().patch({
       notice:
-        'No host code on the clipboard yet. Tap Reconnect on the other iPad first, then try again — or scan its code.',
+        'No host code on the clipboard yet. Tap Reconnect on the other iPad first, then try again — or paste its code.',
     })
   }
 
@@ -122,7 +122,7 @@ class SyncManager {
         useSync.getState().patch({
           notice: copied
             ? 'Host code copied. Tap Reconnect on the other iPad, then paste the answer here.'
-            : 'Code ready. Scan it on the other iPad, or tap Copy code.',
+            : 'Code ready. Copy or share it with the other iPad.',
         })
       }
     } catch (error) {

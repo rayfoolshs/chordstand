@@ -78,21 +78,19 @@ Coverage:
 
 ### Prerequisites
 - Two or more iPads (or iPads and a Mac) running the deployed HTTPS app, on the **same Wi-Fi**.
-- Camera permission for QR scanning, or the text-code fallback.
 - Local network permission allowed on iOS.
 - Different libraries on each device is the most useful test.
 
 ### Pair
-- [ ] Device A: link icon → **Host this session**. A QR appears.
-- [ ] Device B: link icon → **Join a session** → **Scan host code**. B accepts the offer.
-- [ ] B shows an answer QR; A taps **Scan answer** and scans it.
+- [ ] Device A: link icon → **Host this session**. A pairing code appears.
+- [ ] Device B: link icon → **Join a session**, then **Paste & continue** (Universal Clipboard) or paste the code.
+- [ ] B shows an answer code; A taps **Paste answer & connect**.
 - [ ] Both dialogs show **Devices are mirrored**; both header link icons turn green.
-- [ ] If scanning fails: copy/show text codes and paste them; the same connection should form.
-- [ ] With no camera: **Copy code** on A → **Paste host code & continue** on B → **Copy code** on B → **Paste answer & connect** on A; the session forms.
+- [ ] Tap **Share** on A and open the link on B; B joins automatically.
 - [ ] Reopen the dialog after pairing: **Reconnect to last device** appears and resumes the same role.
 
 ### Adding more devices (3+)
-- [ ] With A and B connected, A taps **Add another device**; a fresh QR appears and B stays connected.
+- [ ] With A and B connected, A taps **Add another device**; a fresh code appears and B stays connected.
 - [ ] Pair device C the same way; all three show the mirrored state.
 - [ ] Add or edit a song on C; the change reaches A and B (the host relays it).
 - [ ] Scroll or autoscroll on C; A and B follow.
@@ -119,7 +117,7 @@ Coverage:
 
 ### Failure cases
 - [ ] Turn Wi-Fi off on one device mid-session; the other reports a disconnect.
-- [ ] Deny camera permission; the text-code fallback still works.
+- [ ] Clear the clipboard, then tap **Paste & continue**; the dialog explains it could not read the clipboard and the paste box still works.
 - [ ] Put the devices on different networks; the host reports "No network path is available" or the connection fails cleanly.
 
 ## Environment note (important)
@@ -136,7 +134,7 @@ When reporting a mirroring issue, include:
 
 - iPad model, iPadOS version, Safari version.
 - App URL and whether it was installed to the home screen.
-- Which pairing method (QR or text code) and which step failed.
+- Which pairing step (sharing the code, pasting the answer, or opening the link) failed.
 - The exact on-screen error.
 - Whether both devices were on the same SSID/VLAN and whether "Local Network" permission was granted.
 - Console output if a Mac is attached to Safari Web Inspector.
