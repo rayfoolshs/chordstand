@@ -30,7 +30,7 @@ class SyncManager {
     useSync.getState().patch({ mode: 'join', status: 'waiting', code: '', error: '', notice: '', adding: false })
   }
 
-  async joinWithOffer(code: string, options: { copyAnswer?: boolean } = {}): Promise<void> {
+  async joinWithOffer(code: string): Promise<void> {
     this.reset()
     this.host = false
     useSync.getState().patch({ mode: 'join', status: 'preparing', code: '', error: '', notice: '', adding: false })
@@ -41,12 +41,13 @@ class SyncManager {
       this.wire(session)
       const answer = await session.acceptOffer(code)
       useSync.getState().patch({ code: answer, status: 'waiting' })
-      if (options.copyAnswer) {
-        const copied = await copyText(answer)
-        useSync.getState().patch({
-          notice: copied ? 'Answer copied. On the host, tap Paste answer & connect.' : '',
-        })
-      }
+      // Put the answer on the clipboard so the host can pick it up automatically.
+      const copied = await copyText(answer)
+      useSync.getState().patch({
+        notice: copied
+          ? 'Answer copied. The host picks it up automatically when it returns; or tap Share to send it.'
+          : '',
+      })
     } catch (error) {
       this.failPending(error)
     }
@@ -72,7 +73,7 @@ class SyncManager {
       code = ''
     }
     if (/^CS1\./.test(code)) {
-      await this.joinWithOffer(code, { copyAnswer: true })
+      await this.joinWithOffer(code)
       return
     }
 
@@ -94,14 +95,18 @@ class SyncManager {
   }
 
   /**
-   * Best-effort: when the host returns to the app, pick up an answer the guest
-   * left on the clipboard (Universal Clipboard, share sheet or a manual copy).
-   * Only a genuine answer is accepted, so the host's own offer is ignored. iOS
-   * may still ask for clipboard access; any failure is silent.
+   * Best-effort: read the clipboard when this device returns to the app and use
+   * it if it holds what we are waiting for — the host looks for an answer, a
+   * joiner looks for the host's offer. Only the matching kind is used (so a
+   * device never feeds its own code back), reads are throttled, and any failure
+   * is silent so the manual paste still works. iOS may still ask to allow paste.
    */
-  async acceptAnswerFromClipboard(): Promise<void> {
+  async autoReadClipboard(): Promise<void> {
     const state = useSync.getState()
-    if (state.mode !== 'host' || state.status !== 'waiting' || !state.code || !this.pending) return
+    const hosting = state.mode === 'host' && state.status === 'waiting' && !!state.code && !!this.pending
+    const joining = state.mode === 'join' && state.status === 'waiting' && !state.code
+    if (!hosting && !joining) return
+
     const now = Date.now()
     if (now - this.autoReadAt < 1500) return
     this.autoReadAt = now
@@ -114,13 +119,18 @@ class SyncManager {
     }
     if (!text) return
 
+    let type: string
     try {
-      if (decodeSignal(text).type !== 'answer') return
+      type = decodeSignal(text).type
     } catch {
       return
     }
 
-    await this.acceptAnswer(text)
+    if (hosting && type === 'answer') {
+      await this.acceptAnswer(text)
+    } else if (joining && type === 'offer') {
+      await this.joinWithOffer(text)
+    }
   }
 
   /** Abandon the device being paired, keeping any already-connected peers. */

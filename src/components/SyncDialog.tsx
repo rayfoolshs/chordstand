@@ -49,16 +49,15 @@ export function SyncDialog() {
     const value = decodeURIComponent(match[1])
     history.replaceState(null, '', window.location.pathname + window.location.search)
     useSync.getState().setOpen(true)
-    void syncManager.joinWithOffer(value, { copyAnswer: true })
+    void syncManager.joinWithOffer(value)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Best-effort: when the host returns to the app, pick up the guest's answer
-  // from the clipboard without an explicit paste.
+  // Best-effort: pick up whichever code this device is waiting for from the
+  // clipboard when it returns to the app, so no one has to paste by hand.
   useEffect(() => {
-    if (!open) return
     const attempt = () => {
-      if (document.visibilityState === 'visible') void syncManager.acceptAnswerFromClipboard()
+      if (document.visibilityState === 'visible') void syncManager.autoReadClipboard()
     }
     attempt()
     document.addEventListener('visibilitychange', attempt)
@@ -67,7 +66,7 @@ export function SyncDialog() {
       document.removeEventListener('visibilitychange', attempt)
       window.removeEventListener('focus', attempt)
     }
-  }, [open])
+  }, [])
 
   const copy = async (value: string) => {
     try {
@@ -160,7 +159,13 @@ export function SyncDialog() {
                 <strong>Host this session</strong>
                 <em>Share a code or link; the other iPad pastes it to join.</em>
               </button>
-              <button className="sync-option" onClick={() => syncManager.beginJoin()}>
+              <button
+                className="sync-option"
+                onClick={() => {
+                  syncManager.beginJoin()
+                  void syncManager.autoReadClipboard()
+                }}
+              >
                 <span className="sync-option-icon">
                   <Icon name="copy" size={22} />
                 </span>

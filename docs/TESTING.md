@@ -83,7 +83,7 @@ Coverage:
 
 ### Pair
 - [ ] Device A: link icon → **Host this session**. A pairing code appears.
-- [ ] Device B: link icon → **Join a session**, then **Paste & continue** (Universal Clipboard) or paste the code.
+- [ ] Device B: link icon → **Join a session**; it reads the host code from the clipboard automatically, or paste it.
 - [ ] B shows an answer code; A picks it up automatically on return, or A taps **Paste answer & connect**.
 - [ ] Both dialogs show **Devices are mirrored**; both header link icons turn green.
 - [ ] Tap **Share** on A and open the link on B; B joins automatically.
