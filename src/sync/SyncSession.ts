@@ -5,6 +5,17 @@ export type SessionStatus = 'idle' | 'connecting' | 'connected' | 'disconnected'
 const ICE_SERVERS: RTCIceServer[] = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
+  // TURN relay for networks that block device-to-device traffic (hotspots,
+  // guest/school Wi-Fi, client isolation). Traffic stays DTLS-encrypted.
+  {
+    urls: [
+      'turn:openrelay.metered.ca:80',
+      'turn:openrelay.metered.ca:443',
+      'turn:openrelay.metered.ca:443?transport=tcp',
+    ],
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
 ]
 
 /**
@@ -62,9 +73,11 @@ export class SyncSession {
     this.connectTimer = window.setTimeout(() => {
       this.connectTimer = null
       if (this.closed || this.opened) return
+      const local = countCandidates(this.pc.localDescription?.sdp)
+      const remote = countCandidates(this.pc.remoteDescription?.sdp)
       this.onStatus?.(
         'failed',
-        'Could not reach the other device. Check both iPads are on the same Wi-Fi, allow Local Network access, then start again.',
+        `Could not reach the other device after 25s (ICE ${this.pc.iceConnectionState}; candidates local ${local}, remote ${remote}). Check both iPads are on the same Wi-Fi, allow Local Network access, then start again.`,
       )
     }, 25000)
   }
@@ -174,7 +187,7 @@ export class SyncSession {
   }
 }
 
-function waitForIce(pc: RTCPeerConnection, timeout = 6000): Promise<void> {
+function waitForIce(pc: RTCPeerConnection, timeout = 12000): Promise<void> {
   return new Promise((resolve) => {
     if (pc.iceGatheringState === 'complete') return resolve()
 
@@ -193,4 +206,10 @@ function waitForIce(pc: RTCPeerConnection, timeout = 6000): Promise<void> {
     pc.addEventListener('icegatheringstatechange', check)
     const timer = window.setTimeout(finish, timeout)
   })
+}
+
+function countCandidates(sdp?: string): number {
+  if (!sdp) return 0
+  const matches = sdp.match(/a=candidate:/g)
+  return matches ? matches.length : 0
 }
