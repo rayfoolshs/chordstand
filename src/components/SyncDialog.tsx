@@ -60,21 +60,6 @@ export function SyncDialog() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // When the host returns to the app, fill in the answer from the clipboard
-  // (only if it matches the current offer, so a stale answer is ignored).
-  useEffect(() => {
-    const attempt = () => {
-      if (document.visibilityState === 'visible') void syncManager.autoReadAnswer()
-    }
-    attempt()
-    document.addEventListener('visibilitychange', attempt)
-    window.addEventListener('focus', attempt)
-    return () => {
-      document.removeEventListener('visibilitychange', attempt)
-      window.removeEventListener('focus', attempt)
-    }
-  }, [])
-
   const copy = async (value: string) => {
     try {
       await navigator.clipboard.writeText(value)

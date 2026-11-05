@@ -41,13 +41,6 @@ class SyncManager {
       this.wire(session)
       const answer = await session.acceptOffer(code)
       useSync.getState().patch({ code: answer, status: 'waiting' })
-      // Put the answer on the clipboard so the host can pick it up automatically.
-      const copied = await copyText(answer)
-      useSync.getState().patch({
-        notice: copied
-          ? 'Answer copied. The host picks it up automatically when it returns; or tap Share to send it.'
-          : '',
-      })
     } catch (error) {
       this.failPending(error)
     }
