@@ -1,5 +1,6 @@
 import { SyncSession } from './SyncSession'
 import { addPeer, removePeer, startMirroring, stopMirroring } from './mirror'
+import { decodeSignal } from './protocol'
 import { readLastSession, rememberSession } from './remember'
 import { useSync } from './useSync'
 
@@ -7,6 +8,7 @@ class SyncManager {
   private sessions: SyncSession[] = []
   private pending: SyncSession | null = null
   private host = false
+  private autoReadAt = 0
 
   async startHost(options: { copyOffer?: boolean } = {}): Promise<void> {
     this.reset()
@@ -89,6 +91,36 @@ class SyncManager {
     } catch (error) {
       this.failPending(error)
     }
+  }
+
+  /**
+   * Best-effort: when the host returns to the app, pick up an answer the guest
+   * left on the clipboard (Universal Clipboard, share sheet or a manual copy).
+   * Only a genuine answer is accepted, so the host's own offer is ignored. iOS
+   * may still ask for clipboard access; any failure is silent.
+   */
+  async acceptAnswerFromClipboard(): Promise<void> {
+    const state = useSync.getState()
+    if (state.mode !== 'host' || state.status !== 'waiting' || !state.code || !this.pending) return
+    const now = Date.now()
+    if (now - this.autoReadAt < 1500) return
+    this.autoReadAt = now
+
+    let text = ''
+    try {
+      text = (await navigator.clipboard.readText()).trim()
+    } catch {
+      return
+    }
+    if (!text) return
+
+    try {
+      if (decodeSignal(text).type !== 'answer') return
+    } catch {
+      return
+    }
+
+    await this.acceptAnswer(text)
   }
 
   /** Abandon the device being paired, keeping any already-connected peers. */

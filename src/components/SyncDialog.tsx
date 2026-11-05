@@ -53,6 +53,22 @@ export function SyncDialog() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Best-effort: when the host returns to the app, pick up the guest's answer
+  // from the clipboard without an explicit paste.
+  useEffect(() => {
+    if (!open) return
+    const attempt = () => {
+      if (document.visibilityState === 'visible') void syncManager.acceptAnswerFromClipboard()
+    }
+    attempt()
+    document.addEventListener('visibilitychange', attempt)
+    window.addEventListener('focus', attempt)
+    return () => {
+      document.removeEventListener('visibilitychange', attempt)
+      window.removeEventListener('focus', attempt)
+    }
+  }, [open])
+
   const copy = async (value: string) => {
     try {
       await navigator.clipboard.writeText(value)

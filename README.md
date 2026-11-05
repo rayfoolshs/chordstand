@@ -82,7 +82,7 @@ Chordstand instances can mirror directly over the local network — no accounts,
 4. B shows an answer code. Paste it on A with **Paste answer & connect**. The link icon turns green when connected.
 5. To add a third device, A taps **Add another device** in the connected panel and repeats steps 3–4. Each extra device pairs with the host once.
 
-There is no QR code and no camera: the code is exchanged by copy/paste or the share sheet (AirDrop, Messages). On the same Apple ID, **Universal Clipboard** carries a copied code straight onto the other iPad, so it is one tap each way and no typing.
+There is no QR code and no camera: the code is exchanged by copy/paste or the share sheet (AirDrop, Messages). On the same Apple ID, **Universal Clipboard** carries a copied code straight onto the other iPad, so it is one tap each way and no typing. When the host returns to the app with the guest's answer on the clipboard, it is picked up automatically — best effort, since iOS may still ask to allow the paste.
 
 Chordstand remembers whether this iPad hosted or joined last time. **Reconnect to last device** resumes that role in one tap per device, reusing the clipboard.
 
