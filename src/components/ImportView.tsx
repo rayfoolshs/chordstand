@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ImportCandidate } from '../core/types'
 import { candidateFromText, readImportFiles, songFromCandidate, type ImportIssue, type ImportResult } from '../core/import'
-import { cleanUltimateGuitarText, ultimateGuitarSearchUrl } from '../core/ug'
+import { cleanUltimateGuitarText, looksLikeChordChart, ultimateGuitarSearchUrl } from '../core/ug'
 import { useStore } from '../store/useStore'
 import { Icon } from './Icon'
+
+/** Remembered across visits so returning to Import does not re-add the same chart. */
+let lastPickedUp = ''
 
 export function ImportView({
   onBack,
@@ -33,6 +36,7 @@ export function ImportView({
   const [dragging, setDragging] = useState(false)
   const [importing, setImporting] = useState(false)
   const [linkNotice, setLinkNotice] = useState(false)
+  const [clipboardNotice, setClipboardNotice] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleFiles = async (files: FileList | File[]) => {
@@ -82,6 +86,41 @@ export function ImportView({
     onInitialConsumed?.()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialText])
+
+  /**
+   * Pick up a chart copied in Safari (usually from Ultimate Guitar) when the
+   * app becomes visible again. iOS may ask to allow pasting the first time; a
+   * refusal is silent and the Paste button still works. Only text that looks
+   * like a chart is accepted, so unrelated clipboard content is ignored.
+   */
+  useEffect(() => {
+    let disposed = false
+
+    const attempt = async () => {
+      if (disposed || document.visibilityState !== 'visible') return
+      let text = ''
+      try {
+        text = (await navigator.clipboard.readText()).trim()
+      } catch {
+        return
+      }
+      if (!text || text === lastPickedUp) return
+      if (!looksLikeChordChart(text)) return
+      lastPickedUp = text
+      addPastedText(text)
+      setClipboardNotice(true)
+    }
+
+    void attempt()
+    document.addEventListener('visibilitychange', attempt)
+    window.addEventListener('focus', attempt)
+    return () => {
+      disposed = true
+      document.removeEventListener('visibilitychange', attempt)
+      window.removeEventListener('focus', attempt)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const searchUltimateGuitar = () => {
     const query = ugQuery.trim()
@@ -138,6 +177,20 @@ export function ImportView({
       </header>
 
       <div className="import-body">
+        {clipboardNotice && (
+          <div className="restore-card">
+            <div>
+              <strong>Chart picked up from your clipboard</strong>
+              <p className="muted small">
+                Copied from Safari? It is in the preview below — check it over, then tap Import.
+              </p>
+            </div>
+            <button className="ghost-button" onClick={() => setClipboardNotice(false)}>
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {linkNotice && (
           <div className="restore-card">
             <div>

@@ -3,7 +3,7 @@
 ## Automated
 
 ```bash
-npm test           # Vitest, 46 tests
+npm test           # Vitest, 50 tests
 npx tsc --noEmit   # strict typecheck
 npm run build      # typecheck + Vite build + service-worker asset injection
 ```
@@ -74,6 +74,8 @@ Coverage:
 ### Ultimate Guitar workflow
 - [ ] Search opens UG's title search in a new tab.
 - [ ] Copying a chord sheet and tapping "Paste from clipboard" creates a preview.
+- [ ] Copy a chord sheet in Safari, switch back to Import, and the chart appears without tapping Paste.
+- [ ] Copying ordinary text does not create a preview.
 - [ ] The cleaner removes Download/Print/author lines but keeps `Key`, `Capo` and the chart.
 - [ ] Import the candidate and edit it if needed.
 

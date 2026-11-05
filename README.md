@@ -29,7 +29,7 @@ OnSong for a band that already has a big `.onsong` library.
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 46 Vitest tests: parser, transpose, import, backup, deep link, mirror merge
+npm test           # 50 Vitest tests: parser, transpose, import, backup, deep link, clipboard, mirror merge
 npm run build      # production build in dist/
 npm run preview    # serve the production build
 ```
@@ -97,8 +97,12 @@ The Import screen has a **Find chords online** card:
 
 1. Type a song or artist and tap **Search UG**. Ultimate Guitar opens in a new tab.
 2. Copy the chord sheet from their page.
-3. Return to Chordstand and tap **Paste from clipboard** (or paste into the box below).
+3. Return to Chordstand: the chart is **picked up from the clipboard automatically** and appears in the preview
+   (iOS asks to allow pasting the first time). You can also tap **Paste from clipboard**.
 4. Review the imported chart, fix anything the parser could not read, and import.
+
+Automatic pick-up only accepts text that looks like a chord chart — real chord lines or bracketed chords — so
+ordinary clipboard content is ignored, and nothing is saved until you tap **Import**.
 
 Chordstand does **not** download UG pages itself. Their terms and robots rules prohibit automated scraping, the
 charts are copyrighted, and their Cloudflare/CORS setup blocks browser fetches anyway. Copying a chart you can

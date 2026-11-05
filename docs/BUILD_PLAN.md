@@ -26,7 +26,7 @@ Non-goals for this phase: accounts, subscriptions, cloud hosting, social feature
 | Backup / restore / export | **Done** | Storage & backups panel with size estimates, last-backup age, share-sheet save to Files, `.onsong` zip export, full backup and in-app restore |
 | Appearance slider | **Done** | Continuous night → dusk → daylight with contrast-aware text/accent |
 | Multi-device mirroring | **Done, verified on two iPads** | PeerJS pairing with a 4-digit code, then a direct data channel; host-relayed songs/sets/view/scroll/autoscroll/transpose/fullscreen sync |
-| Ultimate Guitar workflow | **Done (compliant)** | In-app search launcher + clipboard paste + UG text cleaner. No scraping. Optional iOS Shortcut sends a selected chart in through a `#import=` link |
+| Ultimate Guitar workflow | **Done (compliant)** | In-app search launcher + clipboard paste, with automatic pick-up when a copied chart is detected, + UG text cleaner. No scraping |
 | PDF / image charts | Not started | Next major content feature |
 | Backing tracks / MIDI / projection | Not started | Later phase |
 | Self-hosted signalling | Not started | Optional; only if the public PeerJS service is not good enough |
@@ -147,6 +147,15 @@ usable chart.
 
 **Acceptance:** sharing a selected chart through the Shortcut opens the preview, and confirming it saves the
 song.
+
+### M12 — Automatic clipboard pick-up ✅
+- Copying a chart in Safari and returning to Import adds it to the preview with no tap.
+- Only text that looks like a chart (bracketed chords, chord-over-lyric lines, or key/capo metadata) is
+  accepted; everything else is ignored.
+- The same text is never added twice, even across visits to the Import screen.
+- iOS may prompt to allow pasting the first time; a refusal is silent and the Paste button still works.
+
+**Acceptance:** copy a UG chart in Safari, switch to the installed app, and the preview is already there.
 
 ## Next up
 

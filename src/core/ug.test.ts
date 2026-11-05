@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cleanUltimateGuitarText, ultimateGuitarSearchUrl } from './ug'
+import { cleanUltimateGuitarText, looksLikeChordChart, ultimateGuitarSearchUrl } from './ug'
 
 describe('Ultimate Guitar paste cleanup', () => {
   it('builds a title search URL', () => {
@@ -43,5 +43,28 @@ Last edit: today
   it('collapses repeated blank lines and strips zero-width characters', () => {
     const clean = cleanUltimateGuitarText('Title: Test\n\n\n\n[G]Hello\u200b world')
     expect(clean).toBe('Title: Test\n\n[G]Hello world')
+  })
+})
+
+describe('clipboard chart detection', () => {
+  it('accepts bracketed chord charts', () => {
+    expect(looksLikeChordChart('Title: Test\n\n[G]Hello [C]world\n[G]Again and [D]again')).toBe(true)
+  })
+
+  it('accepts chords-over-lyrics charts', () => {
+    expect(
+      looksLikeChordChart('Title: Test\n\nG       C\nAmazing grace, how sweet\nG        D\nThat saved a wretch'),
+    ).toBe(true)
+  })
+
+  it('accepts a long chart with key/capo metadata', () => {
+    const body = 'Capo: 2\n\n' + 'Amazing grace how sweet the sound\n'.repeat(5)
+    expect(looksLikeChordChart(body)).toBe(true)
+  })
+
+  it('rejects ordinary text', () => {
+    expect(looksLikeChordChart('See you at the pub at 7')).toBe(false)
+    expect(looksLikeChordChart('https://www.ultimate-guitar.com/search.php?value=hello')).toBe(false)
+    expect(looksLikeChordChart('')).toBe(false)
   })
 })

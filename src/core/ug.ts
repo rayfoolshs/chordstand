@@ -22,6 +22,25 @@ const SITE_CHROME = [
 
 const CHROME_PREFIXES = /^(author|last edit|created|updated|views|difficulty):/i
 
+const BRACKET_CHORD = /\[[A-G][#b]?[^\]]*\]/g
+const CHORD_LINE =
+  /^\s*[A-G][#b]?(?:m|maj|min|m|sus|add|dim|aug|°)?\d*(?:\/[A-G][#b]?)?(?:\s+[A-G][#b]?(?:m|maj|min|sus|add|dim|aug|°)?\d*(?:\/[A-G][#b]?)?)*\s*$/gm
+const TAB_META = /^(?:key|capo|tuning)\s*[:=]/im
+
+/**
+ * Is this clipboard text plausibly a chord chart? An automatic clipboard read
+ * must never turn unrelated content (a URL, a message, a phone number) into an
+ * import candidate, so require real chart signals.
+ */
+export function looksLikeChordChart(input: string): boolean {
+  const text = input.trim()
+  if (text.length < 40 || text.length > 200_000) return false
+
+  if ((text.match(BRACKET_CHORD) ?? []).length >= 2) return true
+  if ((text.match(CHORD_LINE) ?? []).filter((line) => line.trim()).length >= 2) return true
+  return TAB_META.test(text) && text.length > 120
+}
+
 export function ultimateGuitarSearchUrl(query: string): string {
   return `https://www.ultimate-guitar.com/search.php?search_type=title&value=${encodeURIComponent(query.trim())}`
 }
