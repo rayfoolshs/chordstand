@@ -18,6 +18,9 @@ export class SyncSession {
   private opened = false
   private connectTimer: number | null = null
 
+  /** Id of the offer this session created (or is answering), echoed in the answer. */
+  offerId: number | null = null
+
   onMessage?: (message: SyncMessage) => void
   onStatus?: (status: SessionStatus, detail?: string) => void
   onOpen?: () => void
@@ -75,27 +78,32 @@ export class SyncSession {
 
   async createOffer(): Promise<string> {
     this.bindChannel(this.pc.createDataChannel('chordstand', { ordered: true }))
+    this.offerId = Date.now()
     const offer = await this.pc.createOffer()
     await this.pc.setLocalDescription(offer)
     await waitForIce(this.pc)
-    return this.localCode('Could not create a session offer.')
+    return this.localCode('Could not create a session offer.', this.offerId)
   }
 
   async acceptOffer(code: string): Promise<string> {
     const description = decodeSignal(code)
     if (description.type !== 'offer') throw new Error('That is an answer code. Use the host device.')
 
+    this.offerId = typeof description.t === 'number' ? description.t : null
     await this.pc.setRemoteDescription({ type: 'offer', sdp: description.sdp })
     const answer = await this.pc.createAnswer()
     await this.pc.setLocalDescription(answer)
     await waitForIce(this.pc)
-    return this.localCode('Could not create a session answer.')
+    return this.localCode('Could not create a session answer.', this.offerId ?? undefined)
   }
 
-  async acceptAnswer(code: string): Promise<void> {
+  /** False when the answer belongs to an earlier offer, so a stale paste cannot wedge the session. */
+  async acceptAnswer(code: string): Promise<boolean> {
     const description = decodeSignal(code)
     if (description.type !== 'answer') throw new Error('That is an offer code. Use the host device.')
+    if (this.offerId !== null && description.t !== this.offerId) return false
     await this.pc.setRemoteDescription({ type: 'answer', sdp: description.sdp })
+    return true
   }
 
   send(message: SyncMessage): void {
@@ -123,7 +131,7 @@ export class SyncSession {
     this.onStatus?.('disconnected')
   }
 
-  private localCode(message: string): string {
+  private localCode(message: string, offerId?: number): string {
     const description = this.pc.localDescription
     if (!description?.sdp) throw new Error(message)
     if (!description.sdp.includes('a=candidate')) {
@@ -131,7 +139,7 @@ export class SyncSession {
         'No network path is available. Put both devices on the same Wi-Fi and allow local network access.',
       )
     }
-    return encodeSignal({ type: description.type, sdp: description.sdp })
+    return encodeSignal({ type: description.type, sdp: description.sdp }, offerId)
   }
 
   private bindChannel(channel: RTCDataChannel): void {

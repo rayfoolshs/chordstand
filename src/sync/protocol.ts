@@ -21,6 +21,8 @@ export interface SignalPayload {
   v: number
   type: RTCSdpType
   sdp: string
+  /** Id of the offer this payload belongs to, echoed by the answer so the host can reject a stale one. */
+  t?: number
 }
 
 function toBase64Url(bytes: Uint8Array): string {
@@ -41,13 +43,14 @@ function fromBase64Url(value: string): Uint8Array {
 }
 
 /** Compress an SDP offer/answer into a copy-paste friendly string. */
-export function encodeSignal(description: RTCSessionDescriptionInit): string {
+export function encodeSignal(description: RTCSessionDescriptionInit, offerId?: number): string {
   if (!description.sdp) throw new Error('Missing session description')
   const payload: SignalPayload = {
     v: PROTOCOL_VERSION,
     type: description.type,
     sdp: description.sdp,
   }
+  if (typeof offerId === 'number') payload.t = offerId
   return `${PREFIX}${toBase64Url(zlibSync(strToU8(JSON.stringify(payload))))}`
 }
 

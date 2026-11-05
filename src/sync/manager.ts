@@ -1,5 +1,6 @@
 import { SyncSession } from './SyncSession'
 import { addPeer, removePeer, startMirroring, stopMirroring } from './mirror'
+import { decodeSignal } from './protocol'
 import { readLastSession, rememberSession } from './remember'
 import { useSync } from './useSync'
 
@@ -7,6 +8,7 @@ class SyncManager {
   private sessions: SyncSession[] = []
   private pending: SyncSession | null = null
   private host = false
+  private autoReadAt = 0
 
   async startHost(options: { copyOffer?: boolean } = {}): Promise<void> {
     this.reset()
@@ -88,10 +90,48 @@ class SyncManager {
     if (current.status === 'connecting' || current.status === 'connected') return
     useSync.getState().patch({ status: 'connecting', error: '' })
     try {
-      await this.pending.acceptAnswer(code)
+      const applied = await this.pending.acceptAnswer(code)
+      if (!applied) {
+        useSync.getState().patch({
+          status: 'waiting',
+          error: '',
+          notice: 'That answer is for an earlier attempt. Use the code from the current session.',
+        })
+      }
     } catch (error) {
       this.failPending(error)
     }
+  }
+
+  /**
+   * When the host returns to the app, fill in the answer from the clipboard. An
+   * answer for an earlier offer is ignored (its offer id does not match), so this
+   * cannot wedge the session the way the old unguarded read could.
+   */
+  async autoReadAnswer(): Promise<void> {
+    const state = useSync.getState()
+    if (state.mode !== 'host' || state.status !== 'waiting' || !state.code || !this.pending) return
+    const now = Date.now()
+    if (now - this.autoReadAt < 1500) return
+    this.autoReadAt = now
+
+    let text = ''
+    try {
+      text = (await navigator.clipboard.readText()).trim()
+    } catch {
+      return
+    }
+    if (!text) return
+
+    try {
+      const payload = decodeSignal(text)
+      if (payload.type !== 'answer') return
+      if (this.pending.offerId !== null && payload.t !== this.pending.offerId) return
+    } catch {
+      return
+    }
+
+    await this.acceptAnswer(text)
   }
 
   /** Abandon the device being paired, keeping any already-connected peers. */

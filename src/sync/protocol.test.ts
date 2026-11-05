@@ -41,4 +41,10 @@ describe('pairing codes', () => {
     expect(() => decodeSignal('not-a-code')).toThrow()
     expect(() => decodeSignal('CS1.abc')).toThrow()
   })
+
+  it('carries the offer id when supplied', () => {
+    const code = encodeSignal({ type: 'answer', sdp: SDP }, 42)
+    expect(decodeSignal(code).t).toBe(42)
+    expect(decodeSignal(encodeSignal({ type: 'offer', sdp: SDP })).t).toBeUndefined()
+  })
 })
