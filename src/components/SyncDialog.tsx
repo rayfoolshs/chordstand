@@ -341,9 +341,11 @@ function HostPanel({
           <>
             <p className="sync-wait">Connecting…</p>
             <p className="fine-print">
-              Both iPads must be on the same Wi-Fi with Local Network access allowed. If this hangs, tap
-              Cancel and start again.
+              Both iPads must be on the same Wi-Fi with Local Network access allowed.
             </p>
+            <button className="ghost-button" onClick={onRetry}>
+              Not connecting? Start over with a new code
+            </button>
           </>
         ) : (
           <>
