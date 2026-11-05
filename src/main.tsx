@@ -6,7 +6,8 @@ import { useSettings } from './store/useSettings'
 import './styles/app.css'
 
 // Paint the persisted theme before React renders to avoid a flash of night mode.
-applyAppearance(useSettings.getState().appearance)
+const initialSettings = useSettings.getState()
+applyAppearance(initialSettings.appearance, initialSettings.chordColor)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

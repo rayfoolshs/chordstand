@@ -21,6 +21,7 @@ export default function App() {
   const load = useStore((state) => state.load)
   const navigate = useStore((state) => state.navigate)
   const appearance = useSettings((state) => state.appearance)
+  const chordColor = useSettings((state) => state.chordColor)
 
   const [editor, setEditor] = useState<{ setlistId: string; entryId: string } | null>(null)
 
@@ -29,8 +30,8 @@ export default function App() {
   }, [load])
 
   useLayoutEffect(() => {
-    applyAppearance(appearance)
-  }, [appearance])
+    applyAppearance(appearance, chordColor)
+  }, [appearance, chordColor])
 
   if (!loaded) {
     return (

@@ -12,6 +12,7 @@ import { useSettings } from '../store/useSettings'
 import { appearanceLabel } from '../store/theme'
 import { useStore } from '../store/useStore'
 import { useSync } from '../sync/useSync'
+import { ChordColorPicker, chordColorName } from './ChordColorPicker'
 import { Icon } from './Icon'
 import { Modal } from './Modal'
 import { SongEditor } from './SongEditor'
@@ -370,6 +371,13 @@ export function Library({
             <div className="appearance-head">
               <span className="sheet-label">Appearance</span>
               <span className="appearance-value">{appearanceLabel(settings.appearance)}</span>
+            </div>
+            <div className="chord-color-block">
+              <div className="appearance-head">
+                <span className="sheet-label">Chord colour</span>
+                <span className="appearance-value">{chordColorName(settings.chordColor)}</span>
+              </div>
+              <ChordColorPicker />
             </div>
             <div className="appearance-row">
               <button

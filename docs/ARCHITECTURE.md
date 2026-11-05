@@ -71,7 +71,7 @@ View =
 
 - `src/store/db.ts` — Dexie tables `songs` and `setlists`.
 - `src/store/useStore.ts` — in-memory lists, set-list mutations, navigation.
-- `src/store/useSettings.ts` — persisted settings in `localStorage` under `chordstand.settings.v1` (font, appearance, song key/capo memory, scroll speeds).
+- `src/store/useSettings.ts` — persisted settings in `localStorage` under `chordstand.settings.v1` (font, appearance, chord colour, song key/capo memory, scroll speeds).
 - `src/store/theme.ts` — derives CSS variables from the appearance value.
 
 Write path: UI action → Zustand update → Dexie write. The sync engine subscribes to Zustand and compares the previous and next song/setlist arrays by `updatedAt` to decide what to broadcast.
@@ -132,7 +132,7 @@ displayChord = transpose(sourceChord, inlineOffset + semitones(songKey → targe
 
 ## Appearance
 
-`applyAppearance(value)` blends `NIGHT_BG` → `DUSK_BG` → `DAY_BG` on a non-linear ramp. Text colour switches at a background-luminance threshold, and accent/danger/good colours are nudged toward black or white until they meet a contrast target. Panels, lines and muted text are derived from the background and text. CSS consumes only variables, so theme changes are a handful of style writes.
+`applyAppearance(value, chordColor)` blends `NIGHT_BG` → `DUSK_BG` → `DAY_BG` on a non-linear ramp. Text colour switches at a background-luminance threshold, and accent/danger/good colours are nudged toward black or white until they meet a contrast target. `chordColor` is the player's optional override for chord ink: when set, chords use it instead of the theme accent, then the same contrast pass runs so a bright or dark choice stays readable on both themes. `previewChordColor()` exposes that result so the picker's swatches show the ink that will actually be painted. Panels, lines and muted text are derived from the background and text. CSS consumes only variables, so theme changes are a handful of style writes.
 
 ## Centre stage (full screen)
 

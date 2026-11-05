@@ -10,9 +10,12 @@ interface SettingsState {
   songCapos: Record<string, number>
   scrollSpeeds: Record<string, number>
   lastBackupAt?: number
+  /** Chord ink chosen by the player; null follows the theme accent. */
+  chordColor: string | null
   setFontSize: (size: number) => void
   setAppearance: (value: number) => void
   toggleAppearance: () => void
+  setChordColor: (color: string | null) => void
   toggleChords: () => void
   toggleControls: () => void
   rememberKey: (songId: string, key: string) => void
@@ -34,6 +37,7 @@ interface Persisted {
   songCapos?: Record<string, number>
   scrollSpeeds?: Record<string, number>
   lastBackupAt?: number
+  chordColor?: string | null
 }
 
 function readSettings(): Persisted {
@@ -62,10 +66,12 @@ export const useSettings = create<SettingsState>((set) => ({
   songCapos: restored.songCapos ?? {},
   scrollSpeeds: restored.scrollSpeeds ?? {},
   lastBackupAt: restored.lastBackupAt,
+  chordColor: isHexColor(restored.chordColor) ? restored.chordColor : null,
 
   setFontSize: (fontSize) => set({ fontSize: clamp(fontSize, 14, 56) }),
   setAppearance: (appearance) => set({ appearance: clamp(appearance, 0, 100) }),
   toggleAppearance: () => set((state) => ({ appearance: state.appearance >= 50 ? 0 : 100 })),
+  setChordColor: (chordColor) => set({ chordColor: isHexColor(chordColor) ? chordColor : null }),
   toggleChords: () => set((state) => ({ showChords: !state.showChords })),
   toggleControls: () => set((state) => ({ showControls: !state.showControls })),
   rememberKey: (songId, key) =>
@@ -88,6 +94,7 @@ useSettings.subscribe((state) => {
       songCapos: state.songCapos,
       scrollSpeeds: state.scrollSpeeds,
       lastBackupAt: state.lastBackupAt,
+      chordColor: state.chordColor,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
   } catch {
@@ -97,4 +104,8 @@ useSettings.subscribe((state) => {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
+}
+
+function isHexColor(value: unknown): value is string {
+  return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)
 }

@@ -26,6 +26,7 @@ import {
   wasRemoteViewRecent,
 } from '../sync/mirror'
 import { ChordChart } from './ChordChart'
+import { ChordColorMenu } from './ChordColorPicker'
 import { Icon } from './Icon'
 import { SongEditor } from './SongEditor'
 
@@ -433,6 +434,8 @@ export function SongView({
           <button className="icon-btn" onClick={toggleStage} aria-label="Full screen">
             <Icon name="expand" />
           </button>
+
+          <ChordColorMenu />
 
           <button
             className="icon-btn"

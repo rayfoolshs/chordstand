@@ -165,6 +165,9 @@ keyboard/HID mode and the mappings above work. Web Bluetooth is not available in
   not expose that for non-video content — so it works in the installed app, and it mirrors to the other iPads.
 - **Appearance** lives in Library menu → Appearance: drag between Night stage and Daylight, or tap the sun/moon
   button in the library header and song controls. The choice persists.
+- **Chord colour** lives in the same Appearance card (above the night/day slider) and behind the palette button
+  beside the sun/moon toggle in the song controls. Pick a preset or any custom colour; Chordstand keeps it
+  readable against whichever theme is on, and remembers it.
 - **Pin to set** saves the current key and capo to the set list entry, not the song.
 - Tapping the chart while scrolling does not pause it (deliberate: prevents accidental stops). Use the Scroll
   button or the pedal.

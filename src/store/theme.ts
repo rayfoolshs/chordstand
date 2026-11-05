@@ -94,7 +94,7 @@ function readableInk(background: string): string {
  * Blend the whole palette between the night and daylight themes.
  * 0 = night stage, 100 = daylight, anything in between is a continuous mix.
  */
-export function applyAppearance(value: number): void {
+export function applyAppearance(value: number, chordColor: string | null = null): void {
   const amount = Math.min(100, Math.max(0, value)) / 100
   const bg = backgroundFor(amount)
   const light = relativeLuminance(parseColor(bg)) >= 0.18
@@ -111,7 +111,8 @@ export function applyAppearance(value: number): void {
   const accentBase = light ? ACCENT_DAY : ACCENT_NIGHT
   const accent = ensureContrast(accentBase, panel, 4.5)
   const accentStrong = ensureContrast(mix(accent, text, 0.14), panel, 4.5)
-  const chord = ensureContrast(accentBase, bg, 4.5)
+  // Chords follow the accent unless the player picked their own ink.
+  const chord = chordInk(chordColor, bg, light)
   const danger = ensureContrast(light ? DANGER_DAY : DANGER_NIGHT, bg, 4.5)
   const good = ensureContrast(light ? GOOD_DAY : GOOD_NIGHT, bg, 4.5)
   const [accentR, accentG, accentB] = parseColor(accentBase)
@@ -141,6 +142,18 @@ export function applyAppearance(value: number): void {
   Object.entries(vars).forEach(([name, value]) => root.style.setProperty(`--${name}`, value))
   root.style.colorScheme = light ? 'light' : 'dark'
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg)
+}
+
+/** The chord ink that will actually be painted for an appearance value. */
+export function previewChordColor(chordColor: string | null, value: number): string {
+  const amount = Math.min(100, Math.max(0, value)) / 100
+  const bg = backgroundFor(amount)
+  const light = relativeLuminance(parseColor(bg)) >= 0.18
+  return chordInk(chordColor, bg, light)
+}
+
+function chordInk(chordColor: string | null, bg: string, light: boolean): string {
+  return ensureContrast(chordColor ?? (light ? ACCENT_DAY : ACCENT_NIGHT), bg, 4.5)
 }
 
 function backgroundFor(amount: number): string {

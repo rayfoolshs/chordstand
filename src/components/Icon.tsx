@@ -32,6 +32,7 @@ export type IconName =
   | 'database'
   | 'grip'
   | 'refresh'
+  | 'palette'
 
 const PATHS: Record<IconName, ReactNode> = {
   back: <path d="M14.5 5 7.5 12l7 7" />,
@@ -148,6 +149,14 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3" />
       <path d="M19.5 4.5V9H15" />
+    </>
+  ),
+  palette: (
+    <>
+      <path d="M12 3.5a8.5 8.5 0 1 0 0 17h1.4a2.4 2.4 0 0 0 0-4.8h-.9a1.4 1.4 0 0 1 0-2.8h2.9a4.1 4.1 0 0 0 4.1-4.1c0-3.1-3.4-5.3-7.5-5.3Z" />
+      <circle cx="7.6" cy="11.4" r="1" fill="currentColor" stroke="none" />
+      <circle cx="9.6" cy="7.4" r="1" fill="currentColor" stroke="none" />
+      <circle cx="14" cy="6.8" r="1" fill="currentColor" stroke="none" />
     </>
   ),
 }
