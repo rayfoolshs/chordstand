@@ -1,6 +1,5 @@
 import { SyncSession } from './SyncSession'
 import { addPeer, removePeer, startMirroring, stopMirroring } from './mirror'
-import { decodeSignal } from './protocol'
 import { readLastSession, rememberSession } from './remember'
 import { useSync } from './useSync'
 
@@ -8,7 +7,6 @@ class SyncManager {
   private sessions: SyncSession[] = []
   private pending: SyncSession | null = null
   private host = false
-  private autoReadAt = 0
 
   async startHost(options: { copyOffer?: boolean } = {}): Promise<void> {
     this.reset()
@@ -93,45 +91,6 @@ class SyncManager {
       await this.pending.acceptAnswer(code)
     } catch (error) {
       this.failPending(error)
-    }
-  }
-
-  /**
-   * Best-effort: read the clipboard when this device returns to the app and use
-   * it if it holds what we are waiting for — the host looks for an answer, a
-   * joiner looks for the host's offer. Only the matching kind is used (so a
-   * device never feeds its own code back), reads are throttled, and any failure
-   * is silent so the manual paste still works. iOS may still ask to allow paste.
-   */
-  async autoReadClipboard(): Promise<void> {
-    const state = useSync.getState()
-    const hosting = state.mode === 'host' && state.status === 'waiting' && !!state.code && !!this.pending
-    const joining = state.mode === 'join' && state.status === 'waiting' && !state.code && !this.pending
-    if (!hosting && !joining) return
-
-    const now = Date.now()
-    if (now - this.autoReadAt < 1500) return
-    this.autoReadAt = now
-
-    let text = ''
-    try {
-      text = (await navigator.clipboard.readText()).trim()
-    } catch {
-      return
-    }
-    if (!text) return
-
-    let type: string
-    try {
-      type = decodeSignal(text).type
-    } catch {
-      return
-    }
-
-    if (hosting && type === 'answer') {
-      await this.acceptAnswer(text)
-    } else if (joining && type === 'offer') {
-      await this.joinWithOffer(text)
     }
   }
 

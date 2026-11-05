@@ -83,8 +83,8 @@ Coverage:
 
 ### Pair
 - [ ] Device A: link icon → **Host this session**. A pairing code appears.
-- [ ] Device B: link icon → **Join a session**; on the same Apple ID it reads the code automatically, otherwise use **Share** (AirDrop/Messages) and paste it.
-- [ ] B shows an answer code; A picks it up automatically on return (same Apple ID), or A taps **Paste answer & connect** with the code B sent.
+- [ ] Device B: link icon → **Join a session**, then **Paste & continue** (reads the clipboard) or paste the code.
+- [ ] B shows an answer code; A taps **Paste answer & connect** (uses the code B sent).
 - [ ] Both dialogs show **Devices are mirrored**; both header link icons turn green.
 - [ ] Different Apple IDs: **Share** on A → AirDrop/Messages to B → paste on B → **Share** on B → AirDrop/Messages to A → paste on A; the session forms.
 - [ ] Tap **Share** on A and open the link on B; B joins automatically.

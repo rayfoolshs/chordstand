@@ -53,21 +53,6 @@ export function SyncDialog() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Best-effort: pick up whichever code this device is waiting for from the
-  // clipboard when it returns to the app, so no one has to paste by hand.
-  useEffect(() => {
-    const attempt = () => {
-      if (document.visibilityState === 'visible') void syncManager.autoReadClipboard()
-    }
-    attempt()
-    document.addEventListener('visibilitychange', attempt)
-    window.addEventListener('focus', attempt)
-    return () => {
-      document.removeEventListener('visibilitychange', attempt)
-      window.removeEventListener('focus', attempt)
-    }
-  }, [])
-
   const copy = async (value: string) => {
     try {
       await navigator.clipboard.writeText(value)
@@ -157,13 +142,7 @@ export function SyncDialog() {
                 <strong>Host this session</strong>
                 <em>Share a code or link; the other iPad pastes it to join.</em>
               </button>
-              <button
-                className="sync-option"
-                onClick={() => {
-                  syncManager.beginJoin()
-                  void syncManager.autoReadClipboard()
-                }}
-              >
+              <button className="sync-option" onClick={() => syncManager.beginJoin()}>
                 <span className="sync-option-icon">
                   <Icon name="copy" size={22} />
                 </span>
