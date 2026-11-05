@@ -258,6 +258,15 @@ export function Library({
         </div>
       )}
 
+      <footer className="app-credit">
+        <span>
+          Chordstand · Created by <strong>Ray Foo</strong>
+        </span>
+        <a href="https://www.rayfooproductions.com" target="_blank" rel="noreferrer">
+          www.rayfooproductions.com
+        </a>
+      </footer>
+
       <Modal open={Boolean(actionSong)} title={actionSong?.title} onClose={() => setActionSong(null)}>
         {actionSong && (
           <div className="stack">

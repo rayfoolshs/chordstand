@@ -2,6 +2,8 @@
 
 **Live:** https://rayfoolshs.github.io/chordstand/
 
+Created by **Ray Foo** · [www.rayfooproductions.com](https://www.rayfooproductions.com)
+
 A local-first chord chart and set list app for working musicians. Built as a better-behaved alternative to OnSong for a band that already has a big `.onsong` library.
 
 - **Import-first**: drop in a zip of `.onsong` files, ChordPro, plain text, or paste a chart. Review every song before it is saved.
