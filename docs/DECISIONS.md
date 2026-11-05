@@ -10,15 +10,15 @@ Short ADR-style notes for the choices that shape the app.
 
 **Cost:** no automatic cross-device sync (mirroring is explicit), storage lives with the browser, and Safari can evict non-installed storage.
 
-## ADR-002 — Mirroring over WebRTC, paired without a server
+## ADR-002 — Pairing with PeerJS, mirroring peer-to-peer
 
-**Decision:** use a direct WebRTC data channel with offline SDP exchange. Pair by sharing the code (copy/paste or the share sheet, with a `#pair=` link that auto-joins). No signalling server. One iPad hosts and the others join it; the host relays messages between the guests (hub-and-spoke).
+**Decision:** let PeerJS broker the handshake against its free public service, then mirror over the resulting direct data channel. The host claims a 4-digit code; guests type it, scan a QR, or open a share link. One iPad hosts and the others join it; the host relays messages between guests (hub-and-spoke).
 
-**Why:** the requirement was devices on the same network, with no infrastructure. WebRTC is encrypted, browser-native, and works without an account. Sharing the code removes the need to type SDP, and dropping the camera avoids iOS camera-permission and gesture problems.
+**Why:** the hand-written offer/answer shuttle was fragile on iPadOS — the manual exchange worked, but ICE reported `connected` while the data channel never opened, and there was no serverless way to carry the answer back without a second scan or paste. PeerJS is widely exercised on iOS Safari and collapses pairing to one step. A 4-digit code also fits a stage context where reading a long code aloud is impractical.
 
-**Cost:** pairing is a deliberate two-step ceremony per device; ICE can fail on locked-down networks; the host is a single point of failure and a handful of devices is the practical limit; the implementation cannot be verified in a browser environment that exposes no ICE candidates.
+**Cost:** pairing now needs internet and depends on a third party (the public PeerJS cloud). Four digits are convenient rather than secret, so anyone who learns the code can join while the host is hosting. The host remains a single point of failure, and a handful of devices is the practical limit.
 
-**Alternatives considered:** a local Node sync server (reliable but needs a laptop and HTTP-only PWA), a hosted relay (best UX, cross-network, but needs infrastructure and an internet connection), a full mesh (no single point of failure, but O(N²) pairing).
+**Alternatives considered:** keeping the serverless two-QR flow (no infrastructure, but two scans and a host that must scan); a self-hosted signalling server (more control, more setup); a full mesh (no single point of failure, but O(N²) pairing).
 
 ## ADR-003 — No scraping of Ultimate Guitar
 

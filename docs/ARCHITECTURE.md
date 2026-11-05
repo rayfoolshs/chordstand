@@ -30,7 +30,7 @@ There is no backend. The app is a static bundle; all data is on-device unless de
 | State | Zustand |
 | Persistence | Dexie / IndexedDB |
 | Files | fflate (zip), sql.js (lazy, OnSong `.backup`) |
-| Pairing | WebRTC DataChannel + `qrcode` + `jsqr` |
+| Pairing | PeerJS (public signalling) + `qrcode` + `jsqr` |
 | Offline | Hand-written service worker + manifest |
 | Tests | Vitest (Node) |
 
@@ -132,16 +132,15 @@ displayChord = transpose(sourceChord, inlineOffset + semitones(songKey → targe
 
 ### Pairing
 
-1. Host creates a WebRTC offer and waits for ICE gathering (6 s cap).
-2. The offer is compressed with zlib, base64url-encoded and prefixed `CS1.`.
-3. The code is shown as text, with Copy and Share (a share link carries it as `#pair=`).
-4. Guest pastes or opens it, sets the remote offer, creates an answer, and shows its own `CS1.` code.
-5. Host pastes the answer. The data channel opens and the guest joins the session.
-6. The host repeats steps 1–5 for each extra device; each guest pairs with the host once.
+1. Host claims a peer id `chordstand-v1-<code>` on the public PeerJS signalling service, where `<code>` is four random digits.
+2. If that id is taken, the host retries with another code (up to five times), so the code on screen is always valid.
+3. The code, a share link (`#join=1234`) and a QR of that link are shown.
+4. A guest joins by typing the code, scanning the QR, or opening the link; PeerJS brokers the offer/answer automatically.
+5. Any number of guests can join the same code; the host accepts each connection and relays between them.
 
-The `CS1.` codec lives in `src/sync/protocol.ts`; the peer connection in `src/sync/SyncSession.ts`. No STUN/TURN account is required, but public STUN servers are listed for better reachability. If no ICE candidates are produced, the app reports "No network path is available" instead of showing a dead code.
+`src/sync/PeerLink.ts` wraps PeerJS (loaded lazily, so its ~120 kB never enters the main bundle) in a small `MirrorLink` interface, which is all the merge engine needs. There is no hand-written SDP, no clipboard shuttle, and no second scan step.
 
-The host holds one `SyncSession` per guest; guests hold one. `src/sync/mirror.ts` keeps a list of peers, and the host relays every guest's message to the others so the whole group converges.
+4-digit codes are chosen for readability when read aloud or typed on a stage. They are namespaced to Chordstand and collide harmlessly (the host just takes another), but they are not secrets — anyone who knows the code can join while the host is hosting.
 
 ### Messages
 
@@ -193,7 +192,7 @@ src/
   core/        types, parser, chords, import, OnSong backup, UG cleanup, demos
   store/       Dexie schema, app store, settings, theme engine
   hooks/       autoscroll, wake lock, fullscreen, pedal hotkeys
-  sync/        protocol codec, WebRTC session, mirror engine, manager/UI state
+  sync/        message types, PeerJS link, mirror engine, manager/UI state
   components/  Library, SongView, Setlists, Import, editors, sync dialog
   styles/      single stylesheet driven by CSS variables
 docs/          build plan, architecture, testing, decisions

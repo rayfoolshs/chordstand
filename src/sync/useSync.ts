@@ -1,5 +1,7 @@
 import { create } from 'zustand'
-import type { SessionStatus } from './SyncSession'
+
+/** Connection state shown in the mirror dialog. */
+export type SessionStatus = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'failed'
 
 export type SyncMode = 'idle' | 'host' | 'join'
 
@@ -12,8 +14,6 @@ export interface SyncUiState {
   notice: string
   /** Number of devices currently in the mirror session. */
   peerCount: number
-  /** True while the host is pairing one more device on top of an existing session. */
-  adding: boolean
   setOpen: (open: boolean) => void
   patch: (patch: Partial<Omit<SyncUiState, 'setOpen' | 'patch'>>) => void
   reset: () => void
@@ -27,8 +27,7 @@ export const useSync = create<SyncUiState>((set) => ({
   error: '',
   notice: '',
   peerCount: 0,
-  adding: false,
   setOpen: (open) => set({ open }),
   patch: (patch) => set(patch),
-  reset: () => set({ mode: 'idle', status: 'idle', code: '', error: '', notice: '', peerCount: 0, adding: false }),
+  reset: () => set({ mode: 'idle', status: 'idle', code: '', error: '', notice: '', peerCount: 0 }),
 }))

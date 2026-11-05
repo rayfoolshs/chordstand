@@ -1,249 +1,145 @@
-import { SyncSession } from './SyncSession'
+import type Peer from 'peerjs'
 import { addPeer, removePeer, startMirroring, stopMirroring } from './mirror'
-import { decodeSignal } from './protocol'
+import { hostWithCode, joinWithCode, PeerLink, randomCode } from './PeerLink'
 import { readLastSession, rememberSession } from './remember'
 import { useSync } from './useSync'
 
+/**
+ * Pairing runs over PeerJS: the host claims a short numeric code and every other
+ * device joins by entering it. Mirroring itself is still peer-to-peer; only the
+ * handshake goes through the signalling service.
+ */
 class SyncManager {
-  private sessions: SyncSession[] = []
-  private pending: SyncSession | null = null
+  private peer: Peer | null = null
+  private links: PeerLink[] = []
   private host = false
-  private autoReadAt = 0
 
-  async startHost(options: { copyOffer?: boolean } = {}): Promise<void> {
-    this.reset()
+  async startHost(): Promise<void> {
+    this.teardown()
     this.host = true
-    useSync.getState().patch({ mode: 'host', status: 'preparing', code: '', error: '', notice: '', adding: false })
-    await this.beginOffer(options.copyOffer)
-  }
+    useSync.getState().patch({ mode: 'host', status: 'preparing', code: '', error: '', notice: '' })
 
-  /** Host only: pair one more device without dropping the ones already connected. */
-  async addDevice(): Promise<void> {
-    if (!this.host || this.sessions.length === 0) return
-    useSync.getState().patch({ status: 'preparing', code: '', error: '', notice: '', adding: true })
-    await this.beginOffer(true)
-  }
-
-  beginJoin(): void {
-    this.reset()
-    this.host = false
-    useSync.getState().patch({ mode: 'join', status: 'waiting', code: '', error: '', notice: '', adding: false })
-  }
-
-  async joinWithOffer(code: string): Promise<void> {
-    this.reset()
-    this.host = false
-    useSync.getState().patch({ mode: 'join', status: 'preparing', code: '', error: '', notice: '', adding: false })
-
+    const last = readLastSession()
     try {
-      const session = new SyncSession()
-      this.pending = session
-      this.wire(session)
-      const answer = await session.acceptOffer(code)
-      useSync.getState().patch({ code: answer, status: 'waiting' })
+      const { code, peer } = await hostWithCode(
+        (link) => this.adopt(link),
+        (message) => useSync.getState().patch({ notice: message }),
+        last?.role === 'host' ? last.code : randomCode(),
+      )
+      this.peer = peer
+      rememberSession('host', code)
+      useSync.getState().patch({ code, status: 'waiting' })
     } catch (error) {
-      this.failPending(error)
+      this.fail(error)
     }
   }
 
-  /** Re-run the role this device used last, using the clipboard to skip a step when possible. */
+  beginJoin(): void {
+    this.teardown()
+    this.host = false
+    useSync.getState().patch({ mode: 'join', status: 'waiting', code: '', error: '', notice: '' })
+  }
+
+  async joinWithCode(code: string): Promise<void> {
+    const trimmed = code.replace(/\D/g, '').slice(0, 4)
+    if (trimmed.length !== 4) {
+      useSync.getState().patch({ error: 'Enter the 4-digit code shown on the host iPad.' })
+      return
+    }
+
+    this.teardown()
+    this.host = false
+    useSync.getState().patch({ mode: 'join', status: 'connecting', code: '', error: '', notice: '' })
+
+    try {
+      const { link, peer } = await joinWithCode(trimmed)
+      this.peer = peer
+      rememberSession('join', trimmed)
+      this.adopt(link)
+    } catch (error) {
+      this.fail(error)
+    }
+  }
+
+  /** Resume the role this device used last, reusing the same code. */
   async reconnect(): Promise<void> {
     const last = readLastSession()
     if (!last) {
       useSync.getState().patch({ notice: 'No previous session to reconnect to.' })
       return
     }
-
     if (last.role === 'host') {
-      await this.startHost({ copyOffer: true })
+      await this.startHost()
       return
     }
-
-    let code = ''
-    try {
-      code = (await navigator.clipboard.readText()).trim()
-    } catch {
-      code = ''
-    }
-    if (/^CS1\./.test(code)) {
-      await this.joinWithOffer(code)
+    if (last.code) {
+      await this.joinWithCode(last.code)
       return
     }
-
     this.beginJoin()
-    useSync.getState().patch({
-      notice:
-        'No host code on the clipboard yet. Tap Reconnect on the other iPad first, then try again — or paste its code.',
-    })
-  }
-
-  async acceptAnswer(code: string): Promise<void> {
-    if (!this.pending) return
-    const current = useSync.getState()
-    if (current.status === 'connecting' || current.status === 'connected') return
-    useSync.getState().patch({ status: 'connecting', error: '' })
-    try {
-      const applied = await this.pending.acceptAnswer(code)
-      if (!applied) {
-        useSync.getState().patch({
-          status: 'waiting',
-          error: '',
-          notice: 'That answer is for an earlier attempt. Use the code from the current session.',
-        })
-      }
-    } catch (error) {
-      this.failPending(error)
-    }
-  }
-
-  /**
-   * When the host returns to the app, fill in the answer from the clipboard. An
-   * answer for an earlier offer is ignored (its offer id does not match), so this
-   * cannot wedge the session the way the old unguarded read could.
-   */
-  async autoReadAnswer(): Promise<void> {
-    const state = useSync.getState()
-    if (state.mode !== 'host' || state.status !== 'waiting' || !state.code || !this.pending) return
-    const now = Date.now()
-    if (now - this.autoReadAt < 1500) return
-    this.autoReadAt = now
-
-    let text = ''
-    try {
-      text = (await navigator.clipboard.readText()).trim()
-    } catch {
-      return
-    }
-    if (!text) return
-
-    try {
-      const payload = decodeSignal(text)
-      if (payload.type !== 'answer') return
-      if (this.pending.offerId !== null && payload.t !== this.pending.offerId) return
-    } catch {
-      return
-    }
-
-    await this.acceptAnswer(text)
-  }
-
-  /** Abandon the device being paired, keeping any already-connected peers. */
-  cancelPending(): void {
-    const session = this.pending
-    this.pending = null
-    if (session) discard(session)
-    if (this.sessions.length > 0) {
-      useSync
-        .getState()
-        .patch({ status: 'connected', code: '', error: '', notice: '', adding: false, peerCount: this.sessions.length })
-    } else {
-      this.disconnect()
-    }
   }
 
   disconnect(resetUi = true): void {
-    this.reset()
+    this.teardown()
     if (resetUi) useSync.getState().reset()
   }
 
-  private async beginOffer(copyOffer?: boolean): Promise<void> {
-    try {
-      const session = new SyncSession()
-      this.pending = session
-      this.wire(session)
-      const code = await session.createOffer()
-      useSync.getState().patch({ code, status: 'waiting' })
-      if (copyOffer) {
-        const copied = await copyText(code)
-        useSync.getState().patch({
-          notice: copied
-            ? 'Host code copied. Tap Reconnect on the other iPad, then paste the answer here.'
-            : 'Code ready. Copy or share it with the other iPad.',
-        })
-      }
-    } catch (error) {
-      this.failPending(error)
-    }
+  private adopt(link: PeerLink): void {
+    if (this.links.includes(link)) return
+    this.links.push(link)
+
+    link.onClose = () => this.drop(link)
+
+    if (this.links.length === 1) startMirroring(link, this.host)
+    else addPeer(link, this.host)
+
+    useSync
+      .getState()
+      .patch({ status: 'connected', error: '', notice: '', peerCount: this.links.length })
   }
 
-  private wire(session: SyncSession): void {
-    session.onStatus = (status, detail) => {
-      // Wait for the data channel before claiming to be connected.
-      if (status === 'connected') return
-      if (status === 'disconnected' || status === 'failed') {
-        this.dropSession(session, detail ?? '')
-      } else {
-        useSync.getState().patch({ status })
-      }
-    }
+  private drop(link: PeerLink): void {
+    this.links = this.links.filter((existing) => existing !== link)
+    removePeer(link)
+    link.close()
 
-    session.onOpen = () => {
-      if (this.pending === session) this.pending = null
-      if (!this.sessions.includes(session)) this.sessions.push(session)
-      rememberSession(this.host ? 'host' : 'join')
-      if (this.sessions.length === 1) startMirroring(session, this.host)
-      else addPeer(session, this.host)
-      useSync
-        .getState()
-        .patch({ status: 'connected', error: '', notice: '', adding: false, peerCount: this.sessions.length })
-    }
-  }
-
-  private dropSession(session: SyncSession, detail: string): void {
-    const wasPending = this.pending === session
-    if (wasPending) this.pending = null
-    this.sessions = this.sessions.filter((existing) => existing !== session)
-    discard(session)
-    removePeer(session)
-
-    if (this.sessions.length === 0) {
+    if (this.links.length === 0) {
       stopMirroring()
-      useSync
-        .getState()
-        .patch({ status: wasPending ? 'failed' : 'disconnected', error: detail, peerCount: 0, adding: false })
+      // The host keeps its code open so the device can rejoin.
+      useSync.getState().patch({
+        status: this.host ? 'waiting' : 'disconnected',
+        error: this.host ? '' : 'The other device left the session.',
+        peerCount: 0,
+      })
     } else {
-      useSync.getState().patch({ status: 'connected', peerCount: this.sessions.length, adding: false })
+      useSync.getState().patch({ peerCount: this.links.length })
     }
   }
 
-  private failPending(error: unknown): void {
-    const session = this.pending
-    this.pending = null
-    if (session) discard(session)
-    const message = error instanceof Error ? error.message : 'Could not start the mirror session.'
-
-    if (this.sessions.length > 0) {
-      useSync
-        .getState()
-        .patch({ status: 'connected', error: message, adding: false, peerCount: this.sessions.length })
-    } else {
-      stopMirroring()
-      useSync.getState().patch({ status: 'failed', error: message, peerCount: 0, adding: false })
-    }
+  private fail(error: unknown): void {
+    this.teardown()
+    useSync.getState().patch({
+      status: 'failed',
+      error: error instanceof Error ? error.message : 'Could not start the session. Try again.',
+      peerCount: 0,
+    })
   }
 
-  private reset(): void {
-    const all = [...this.sessions, ...(this.pending ? [this.pending] : [])]
-    this.sessions = []
-    this.pending = null
-    all.forEach(discard)
+  private teardown(): void {
+    this.links.forEach((link) => {
+      link.onClose = undefined
+      link.close()
+    })
+    this.links = []
+    if (this.peer) {
+      try {
+        this.peer.destroy()
+      } catch {
+        // Already destroyed.
+      }
+      this.peer = null
+    }
     stopMirroring()
-  }
-}
-
-function discard(session: SyncSession): void {
-  session.onStatus = undefined
-  session.onMessage = undefined
-  session.onOpen = undefined
-  session.close()
-}
-
-async function copyText(value: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(value)
-    return true
-  } catch {
-    return false
   }
 }
 

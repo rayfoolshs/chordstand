@@ -22,7 +22,7 @@ Non-goals for this phase: accounts, subscriptions, cloud hosting, social feature
 | Offline PWA | **Done** | Installable, precached shell, verified cold load with the server off |
 | Backup / restore / export | **Done** | Storage & backups panel with size estimates, last-backup age, share-sheet save to Files, `.onsong` zip export, full backup and in-app restore |
 | Appearance slider | **Done** | Continuous night → dusk → daylight with contrast-aware text/accent |
-| Multi-device mirroring | **Implemented (host + guests), device verification pending** | WebRTC data channel + clipboard/link pairing, host-relayed songs/sets/view/scroll/autoscroll sync. The development browser exposes no ICE candidates, so only the protocol and merge logic are covered by automated tests here |
+| Multi-device mirroring | **Implemented (host + guests), device verification pending** | PeerJS pairing with a 4-digit code, then a direct data channel; host-relayed songs/sets/view/scroll/autoscroll sync. A real two-device test is required to exercise the handshake |
 | Ultimate Guitar workflow | **Done (compliant)** | In-app search launcher + clipboard paste + UG text cleaner. No scraping |
 | PDF / image charts | Not started | Next major content feature |
 | Backing tracks / MIDI / projection | Not started | Later phase |
@@ -91,15 +91,15 @@ Non-goals for this phase: accounts, subscriptions, cloud hosting, social feature
 **Acceptance:** text and chords remain readable at 0/25/50/75/100; setting persists across reloads.
 
 ### M8 — Multi-device mirroring 🟡
-- WebRTC data channel, no server. One host, many guests (hub-and-spoke relay).
-- SDP offer/answer compressed with zlib + base64url, exchanged by text code or a share link.
-- Pairing codes shared by copy/paste or the share sheet; a `#pair=` link opens and joins automatically.
+- Direct WebRTC data channel via PeerJS. One host, many guests (hub-and-spoke relay).
+- Pairing: host claims a 4-digit code on the public PeerJS service; guests type it, scan a QR, or open a share link.
+- Share link (`#join=1234`) opens and joins automatically.
 - Protocol: `hello`, `snapshot`, `song`, `song-del`, `setlist`, `setlist-del`, `view`, `scroll`, `autoscroll`.
 - Snapshot merge by `updatedAt`; live change diffing; remote-apply suppression.
 - Host-authoritative initial view; subsequent view changes both ways.
 
 **Acceptance (to verify on hardware):**
-- Two iPads on the same Wi-Fi pair by pasting codes (or opening a shared link).
+- Two iPads pair by entering a 4-digit code (or scanning the QR).
 - The libraries merge; a song added on either side appears on both.
 - Editing/deleting a song or set list mirrors.
 - Opening a song or set list on one device opens it on the other.
@@ -138,7 +138,7 @@ Non-goals for this phase: accounts, subscriptions, cloud hosting, social feature
 - OnSong backup schema variants: the extractor is tolerant, but a real library may reveal new column/table names. Ask users for the table list when extraction finds nothing.
 - Should mirroring synchronise key/capo overrides made live on one device? Set entries and the live song view now both sync key/capo.
 - Should the host or the newest edit win when both devices edit the same song offline at the same time? Current rule is newest `updatedAt`.
-- Sharing sends the full `CS1.` code; on iOS the share sheet and Universal Clipboard cover most of it. A short-code server would make it a single tap if that is ever worth the infrastructure.
+- Four-digit codes are convenient rather than secret; the host currently accepts anyone who knows the code while it is hosting.
 - IndexedDB eviction on iPad: installed PWA mitigates, but backups should be encouraged after large imports.
 
 ## Definition of done for the current v1

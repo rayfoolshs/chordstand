@@ -8,10 +8,10 @@ A local-first chord chart and set list app for working musicians. Built as a bet
 - **Per-set key and capo**: the song stays in its original key; each set list entry can be transposed or capo'd independently.
 - **Stage controls**: autoscroll, font sizing, lyrics-only mode, fullscreen, and keyboard/Bluetooth page-turner support.
 - **Night → daylight slider**: blend the whole interface continuously, with a one-tap dark/light toggle in the library header and song controls.
-- **Mirror multiple devices**: pair iPads over the local network with a QR code or a pasted code; one hosts, the others join, and songs, set lists and the current screen stay in sync with no server.
+- **Mirror multiple devices**: the host shows a 4-digit code; other iPads type or scan it, and songs, set lists, scrolling and the current screen stay in sync over a direct encrypted link.
 - **Bring in chords from the web**: search Ultimate Guitar from the Import screen, copy a chart and paste it straight in (or use the clipboard button).
 - **Offline PWA**: installs to the iPad home screen, works with no network, keeps the screen awake while scrolling.
-- **No accounts, no subscription, no server**. Everything is stored in the browser's IndexedDB on your device.
+- **No accounts, no subscription**. Everything is stored in the browser's IndexedDB on your device; pairing borrows a free public signalling service, then the devices talk directly.
 
 ## Run it
 
@@ -74,17 +74,16 @@ PDFs and scanned images are **not** supported yet. Inline `{key:}` and `{capo:}`
 
 ## Mirroring devices
 
-Chordstand instances can mirror directly over the local network — no accounts, no relay, no internet. One iPad is the **host**; any number of others **join** it (the host relays changes between them).
+One iPad is the **host** and shows a **4-digit code**; any number of others join with that code. Pairing is brokered by the free public PeerJS signalling service, and the mirroring itself then runs **directly between the iPads** (peer-to-peer, DTLS-encrypted).
 
-1. Put the devices on the same Wi-Fi.
-2. On device A: **link icon → Host this session**. A QR code appears.
-3. On device B: **link icon → Join a session → Scan host code**, and point the camera at A.
-4. B shows an answer QR. Scan it on A with **Scan answer**. The link icon turns green when connected.
-5. To add a third device, A taps **Add another device** in the connected panel and repeats steps 3–4. Each extra device pairs with the host once.
+1. On device A: **link icon → Host this session**. A 4-digit code appears.
+2. On device B: **link icon → Join a session**, type the code (or tap **Scan QR** and point the camera at A's code).
+3. The link icon turns green on both when connected.
+4. To add a third device, just give it the same code — the host accepts more joins while the session is open.
 
-Camera scanning needs HTTPS (the installed PWA qualifies). The camera is requested from the Scan tap, so allow it when iOS asks; if it is unavailable, every step also works by **Copy code** / **Paste** or the share sheet. The **host** also fills the answer in automatically when it returns to the app with it on the clipboard (an answer from an earlier attempt is ignored). On the same Apple ID, Universal Clipboard carries a code across with no typing; on different Apple IDs, share it with AirDrop or Messages.
+Only the handshake touches the network; once paired, songs, set lists, scrolling and key changes go device to device. No account, no subscription.
 
-Chordstand remembers whether this iPad hosted or joined last time. **Reconnect to last device** resumes that role in one tap per device.
+Chordstand remembers the role and code from last time. **Reconnect to last device** reuses them in one tap.
 
 Once connected:
 
@@ -97,7 +96,7 @@ Once connected:
 - Closing the dialog keeps the session running; the header link icon stays green. **Stop mirroring** ends it.
 - The data channel is encrypted (DTLS) and direct. Every app must stay open.
 
-If the host reports *"No network path is available"*, check that both devices really are on the same Wi-Fi and allow local network access when iOS asks.
+The code lives in a Chordstand namespace on the signalling service. Four digits is convenient to read aloud; if a code is already taken the host silently picks another, so the code on screen is always the one to share.
 
 ## Searching Ultimate Guitar
 
@@ -159,10 +158,10 @@ src/
     ug.ts           Ultimate Guitar paste cleanup and search URL
     demo.ts         two public-domain demo charts
   sync/
-    protocol.ts     S2S message types + compressed pairing codes
-    SyncSession.ts  WebRTC peer connection and data channel
-    mirror.ts       snapshot merge, live diff, view sync
-    manager.ts      host/join flow
+    protocol.ts     sync message types
+    PeerLink.ts     PeerJS pairing and the peer data channel
+    mirror.ts       snapshot merge, live diff, view/scroll/key sync
+    manager.ts      host/join/reconnect flow
   store/            Dexie schema, app store, settings, theme engine
   hooks/
     useStage.ts     autoscroll, wake lock, fullscreen, pedal hotkeys
@@ -176,7 +175,7 @@ The parser keeps each song's raw source text, so export is lossless even for con
 ## Known limitations
 
 - PDF/image charts, backing tracks, MIDI and projection are not implemented.
-- Mirroring is LAN-only and hub-and-spoke: one host relays to the guests, so the host is a single point of failure and a handful of devices is the practical limit. It needs camera/local-network permission for QR pairing, and the live ICE path still needs verification on physical devices (see [Testing](docs/TESTING.md)).
+- Mirroring is hub-and-spoke: one host relays to the guests, so the host is a single point of failure and a handful of devices is the practical limit. Pairing needs internet and the public PeerJS service; 4-digit codes are convenient rather than secret.
 - Mirroring conflicts are last-write-wins; a song deleted offline can be reintroduced by a peer's snapshot.
 - Ultimate Guitar cannot be fetched automatically for legal and technical reasons; the app links to their search and imports what you copy.
 - Inline `{key:}` / `{capo:}` changes are stored but ignored while rendering.

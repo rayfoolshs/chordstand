@@ -1,13 +1,18 @@
 import type { Setlist, Song } from '../core/types'
 import { db } from '../store/db'
 import { useStore, type View } from '../store/useStore'
-import type { SyncSession } from './SyncSession'
 import { PROTOCOL_VERSION, type SyncMessage } from './protocol'
+
+/** Anything that can carry sync messages to one other device. */
+export interface MirrorLink {
+  send: (message: SyncMessage) => void
+  onMessage?: (message: SyncMessage) => void
+}
 
 const SCROLL_THROTTLE_MS = 60
 
 interface Peer {
-  session: SyncSession
+  session: MirrorLink
 }
 
 let peers: Peer[] = []
@@ -36,7 +41,7 @@ const sortSetlists = (setlists: Setlist[]): Setlist[] =>
  * Start mirroring with the first peer. Call addPeer() for every further peer;
  * on the host that builds a star, with the host relaying edits between guests.
  */
-export function startMirroring(activeSession: SyncSession, host: boolean): void {
+export function startMirroring(activeSession: MirrorLink, host: boolean): void {
   stopMirroring()
   isHost = host
 
@@ -55,7 +60,7 @@ export function startMirroring(activeSession: SyncSession, host: boolean): void 
 }
 
 /** Register another connected peer and send it the current state. */
-export function addPeer(activeSession: SyncSession, host: boolean = isHost): void {
+export function addPeer(activeSession: MirrorLink, host: boolean = isHost): void {
   const peer: Peer = { session: activeSession }
   peers = peers.filter((existing) => existing.session !== activeSession)
   peers.push(peer)
@@ -70,7 +75,7 @@ export function addPeer(activeSession: SyncSession, host: boolean = isHost): voi
   }
 }
 
-export function removePeer(activeSession: SyncSession): void {
+export function removePeer(activeSession: MirrorLink): void {
   peers = peers.filter((peer) => peer.session !== activeSession)
 }
 

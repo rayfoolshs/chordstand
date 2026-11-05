@@ -3,7 +3,7 @@
 ## Automated
 
 ```bash
-npm test           # Vitest, 45 tests
+npm test           # Vitest, 41 tests
 npx tsc --noEmit   # strict typecheck
 npm run build      # typecheck + Vite build + service-worker asset injection
 ```
@@ -15,7 +15,7 @@ Coverage:
 | `src/core/core.test.ts` | OnSong metadata, title/artist shorthand, chords-over-lyrics, ChordPro directives, inline transpose, key detection, round-trip export, duplicates |
 | `src/core/onsongBackup.test.ts` | SQLite song extraction from several column layouts, embedded metadata, association-table set lists, JSON-column set lists, media-table exclusion |
 | `src/core/ug.test.ts` | UG search URL, page-chrome removal, metadata retention, blank-line collapsing |
-| `src/sync/protocol.test.ts` | SDP compress/decompress, offer/answer types, whitespace/URL-wrapped codes, invalid codes |
+
 | `src/sync/mirror.test.ts` | Host snapshot, merge by `updatedAt`, local edit/delete broadcasts, view broadcasts, no echo of remote applies, guest-to-guest relay, scroll/autoscroll/key-capo sync and replay |
 
 ## Manual smoke test (single device)
@@ -82,18 +82,17 @@ Coverage:
 - Different libraries on each device is the most useful test.
 
 ### Pair
-- [ ] Device A: link icon → **Host this session**. A QR code appears.
-- [ ] Device B: link icon → **Join a session** → **Scan the host code**. B accepts the offer.
-- [ ] B shows an answer QR; A taps **Scan answer** and scans it.
+- [ ] Device A: link icon → **Host this session**. A 4-digit code appears.
+- [ ] Device B: link icon → **Join a session**, type the code → **Connect**.
 - [ ] Both dialogs show **Devices are mirrored**; both header link icons turn green.
-- [ ] If scanning fails: **Copy code** / **Paste & continue** on B, then **Paste answer & connect** on A; the session forms.
-- [ ] Pasting an answer from an **earlier** attempt shows a notice and does not connect (stale codes are rejected).
-- [ ] Tap **Share** on A and open the link on B; B joins automatically.
-- [ ] Reopen the dialog after pairing: **Reconnect to last device** appears and resumes the same role.
+- [ ] Scanning works: A shows the QR, B taps **Scan QR** and the camera opens and reads it.
+- [ ] Sharing works: **Share** on A and open the link on B; B joins automatically.
+- [ ] A wrong or stale code shows a clear error and leaves the dialog usable.
+- [ ] Reopen the dialog after pairing: **Reconnect to last device** appears and resumes the same role and code.
 
 ### Adding more devices (3+)
-- [ ] With A and B connected, A taps **Add another device**; a fresh code appears and B stays connected.
-- [ ] Pair device C the same way; all three show the mirrored state.
+- [ ] With A and B connected, A's connected panel still shows the code.
+- [ ] Device C joins with the same code; all three show the mirrored state.
 - [ ] Add or edit a song on C; the change reaches A and B (the host relays it).
 - [ ] Scroll or autoscroll on C; A and B follow.
 - [ ] Close device C; A and B keep mirroring and A's connected count drops.
@@ -124,7 +123,7 @@ Coverage:
 
 ## Environment note (important)
 
-The automated Chromium used in this development sandbox emits **zero ICE candidates** (verified directly with a bare `RTCPeerConnection`). That means the live WebRTC handshake cannot be completed here; the offer/answer codes contain no candidates and the app correctly reports:
+The automated Chromium used in this development sandbox cannot complete a live WebRTC connection. Pairing now runs through PeerJS, so a real two-device test is required to exercise the handshake; only the merge, relay and sync logic is covered by automated tests.
 
 > No network path is available. Put both devices on the same Wi-Fi and allow local network access.
 
