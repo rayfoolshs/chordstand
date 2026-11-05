@@ -4,11 +4,27 @@ import { useStore, type View } from '../store/useStore'
 import type { SyncSession } from './SyncSession'
 import { PROTOCOL_VERSION, type SyncMessage } from './protocol'
 
-let session: SyncSession | null = null
+const SCROLL_THROTTLE_MS = 60
+
+interface Peer {
+  session: SyncSession
+}
+
+let peers: Peer[] = []
+let isHost = false
 let unsubscribe: (() => void) | null = null
 let applyingRemote = false
 let lastSongs = new Map<string, Song>()
 let lastSetlists = new Map<string, Setlist>()
+let remoteScrollHandler: ((songId: string, progress: number) => void) | null = null
+let remoteAutoscrollHandler: ((songId: string, active: boolean, speed: number) => void) | null = null
+let remoteTransposeHandler: ((songId: string, key: string, capo: number) => void) | null = null
+let activeTranspose: { songId: string; key: string; capo: number } | null = null
+let incomingTranspose: { songId: string; key: string; capo: number } | null = null
+let lastRemoteViewAt = 0
+let lastScrollSentAt = 0
+let pendingScroll: { songId: string; progress: number } | null = null
+let scrollTimer: ReturnType<typeof setTimeout> | null = null
 
 const sortSongs = (songs: Song[]): Song[] =>
   [...songs].sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }))
@@ -16,34 +32,157 @@ const sortSongs = (songs: Song[]): Song[] =>
 const sortSetlists = (setlists: Setlist[]): Setlist[] =>
   [...setlists].sort((a, b) => b.updatedAt - a.updatedAt)
 
+/**
+ * Start mirroring with the first peer. Call addPeer() for every further peer;
+ * on the host that builds a star, with the host relaying edits between guests.
+ */
 export function startMirroring(activeSession: SyncSession, host: boolean): void {
   stopMirroring()
-  session = activeSession
+  isHost = host
 
   const state = useStore.getState()
   lastSongs = new Map(state.songs.map((song) => [song.id, song]))
   lastSetlists = new Map(state.setlists.map((setlist) => [setlist.id, setlist]))
 
-  activeSession.onMessage = handleMessage
   unsubscribe = useStore.subscribe((next, previous) => {
-    if (!session || applyingRemote) return
+    if (!peers.length || applyingRemote) return
     if (next.songs !== previous.songs) syncSongs(next.songs)
     if (next.setlists !== previous.setlists) syncSetlists(next.setlists)
-    if (next.view !== previous.view) session.send({ t: 'view', view: next.view })
+    if (next.view !== previous.view) broadcast({ t: 'view', view: next.view })
   })
 
+  addPeer(activeSession, host)
+}
+
+/** Register another connected peer and send it the current state. */
+export function addPeer(activeSession: SyncSession, host: boolean = isHost): void {
+  const peer: Peer = { session: activeSession }
+  peers = peers.filter((existing) => existing.session !== activeSession)
+  peers.push(peer)
+  activeSession.onMessage = (message) => handleMessage(peer, message)
+
+  const state = useStore.getState()
   activeSession.send({ t: 'hello', protocol: PROTOCOL_VERSION })
   activeSession.send({ t: 'snapshot', songs: state.songs, setlists: state.setlists })
   if (host) activeSession.send({ t: 'view', view: state.view })
+  if (host && activeTranspose && state.view.name === 'song' && state.view.songId === activeTranspose.songId) {
+    activeSession.send({ t: 'transpose', ...activeTranspose })
+  }
+}
+
+export function removePeer(activeSession: SyncSession): void {
+  peers = peers.filter((peer) => peer.session !== activeSession)
 }
 
 export function stopMirroring(): void {
   unsubscribe?.()
   unsubscribe = null
-  session = null
+  peers = []
+  isHost = false
   lastSongs.clear()
   lastSetlists.clear()
   applyingRemote = false
+  if (scrollTimer !== null) {
+    clearTimeout(scrollTimer)
+    scrollTimer = null
+  }
+  pendingScroll = null
+  lastScrollSentAt = 0
+  activeTranspose = null
+  incomingTranspose = null
+  lastRemoteViewAt = 0
+}
+
+/**
+ * Register the callback that applies a peer's scroll position. The song view
+ * owns the scroll element, so it installs the handler while a chart is on screen.
+ * Deliberately not cleared by stopMirroring: a reconnect keeps the mounted view.
+ */
+export function setRemoteScrollHandler(
+  handler: ((songId: string, progress: number) => void) | null,
+): void {
+  remoteScrollHandler = handler
+}
+
+/**
+ * Broadcast the local scroll position as a fraction of the scrollable distance,
+ * so devices with different screen or font sizes land on the same spot. Throttled
+ * with a trailing send so the final resting position always arrives.
+ */
+export function sendScroll(songId: string, progress: number): void {
+  if (!peers.length || applyingRemote) return
+  const now = Date.now()
+  if (now - lastScrollSentAt >= SCROLL_THROTTLE_MS) {
+    lastScrollSentAt = now
+    broadcast({ t: 'scroll', songId, progress })
+    return
+  }
+  pendingScroll = { songId, progress }
+  if (scrollTimer === null) {
+    scrollTimer = setTimeout(() => {
+      scrollTimer = null
+      const payload = pendingScroll
+      pendingScroll = null
+      if (payload && peers.length && !applyingRemote) broadcast({ t: 'scroll', ...payload })
+    }, SCROLL_THROTTLE_MS)
+  }
+}
+
+/**
+ * Register the callback that applies a peer's autoscroll toggle. As with scroll
+ * positions, the song view installs this while a chart is on screen.
+ */
+export function setRemoteAutoscrollHandler(
+  handler: ((songId: string, active: boolean, speed: number) => void) | null,
+): void {
+  remoteAutoscrollHandler = handler
+}
+
+/** Broadcast a local autoscroll start/stop (and speed) so the peers keep pace. */
+export function sendAutoscroll(songId: string, active: boolean, speed: number): void {
+  if (!peers.length || applyingRemote) return
+  broadcast({ t: 'autoscroll', songId, active, speed })
+}
+
+/**
+ * Register the callback that applies a peer's key/capo. As with scroll and
+ * autoscroll, the song view installs this while a chart is on screen. Any
+ * transposition that arrived just before the chart mounted is replayed, so a
+ * device that opens a song learns the current key even if the two messages raced.
+ */
+export function setRemoteTransposeHandler(
+  handler: ((songId: string, key: string, capo: number) => void) | null,
+): void {
+  remoteTransposeHandler = handler
+  if (handler && incomingTranspose) {
+    handler(incomingTranspose.songId, incomingTranspose.key, incomingTranspose.capo)
+  }
+}
+
+/**
+ * Record the key/capo currently shown on this device, so the host can replay it
+ * to a device that joins while this song is open.
+ */
+export function reportActiveTranspose(songId: string, key: string, capo: number): void {
+  activeTranspose = { songId, key, capo }
+}
+
+/** True if a peer just opened a song here, so the mount should adopt rather than assert. */
+export function wasRemoteViewRecent(): boolean {
+  return Date.now() - lastRemoteViewAt < 1500
+}
+
+/** Broadcast a key/capo change so every device shows the same transposition. */
+export function sendTranspose(songId: string, key: string, capo: number): void {
+  activeTranspose = { songId, key, capo }
+  if (!peers.length || applyingRemote) return
+  broadcast({ t: 'transpose', songId, key, capo })
+}
+
+function broadcast(message: SyncMessage, except?: Peer): void {
+  peers.forEach((peer) => {
+    if (peer !== except) peer.session.send(message)
+  })
 }
 
 function syncSongs(songs: Song[]): void {
@@ -51,13 +190,11 @@ function syncSongs(songs: Song[]): void {
 
   current.forEach((song, id) => {
     const before = lastSongs.get(id)
-    if (!before || song.updatedAt > before.updatedAt) {
-      session?.send({ t: 'song', song })
-    }
+    if (!before || song.updatedAt > before.updatedAt) broadcast({ t: 'song', song })
   })
 
   lastSongs.forEach((_song, id) => {
-    if (!current.has(id)) session?.send({ t: 'song-del', id })
+    if (!current.has(id)) broadcast({ t: 'song-del', id })
   })
 
   lastSongs = current
@@ -68,19 +205,17 @@ function syncSetlists(setlists: Setlist[]): void {
 
   current.forEach((setlist, id) => {
     const before = lastSetlists.get(id)
-    if (!before || setlist.updatedAt > before.updatedAt) {
-      session?.send({ t: 'setlist', setlist })
-    }
+    if (!before || setlist.updatedAt > before.updatedAt) broadcast({ t: 'setlist', setlist })
   })
 
   lastSetlists.forEach((_setlist, id) => {
-    if (!current.has(id)) session?.send({ t: 'setlist-del', id })
+    if (!current.has(id)) broadcast({ t: 'setlist-del', id })
   })
 
   lastSetlists = current
 }
 
-function handleMessage(message: SyncMessage): void {
+function handleMessage(origin: Peer, message: SyncMessage): void {
   switch (message.t) {
     case 'snapshot':
       mergeSnapshot(message.songs, message.setlists)
@@ -100,9 +235,22 @@ function handleMessage(message: SyncMessage): void {
     case 'view':
       applyView(message.view)
       break
+    case 'scroll':
+      remoteScrollHandler?.(message.songId, message.progress)
+      break
+    case 'autoscroll':
+      remoteAutoscrollHandler?.(message.songId, message.active, message.speed)
+      break
+    case 'transpose':
+      incomingTranspose = { songId: message.songId, key: message.key, capo: message.capo }
+      remoteTransposeHandler?.(message.songId, message.key, message.capo)
+      break
     case 'hello':
       break
   }
+
+  // The host is the hub: it relays each guest's update to the other guests.
+  if (isHost && message.t !== 'hello') broadcast(message, origin)
 }
 
 function mergeSnapshot(remoteSongs: Song[], remoteSetlists: Setlist[]): void {
@@ -220,4 +368,7 @@ function applyView(view: View): void {
   } finally {
     applyingRemote = false
   }
+  // Mark the mount that follows as peer-driven, so its song view adopts the
+  // incoming transposition instead of asserting this device's saved key.
+  lastRemoteViewAt = Date.now()
 }

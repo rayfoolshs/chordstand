@@ -22,7 +22,7 @@ Non-goals for this phase: accounts, subscriptions, cloud hosting, social feature
 | Offline PWA | **Done** | Installable, precached shell, verified cold load with the server off |
 | Backup / restore / export | **Done** | Storage & backups panel with size estimates, last-backup age, share-sheet save to Files, `.onsong` zip export, full backup and in-app restore |
 | Appearance slider | **Done** | Continuous night → dusk → daylight with contrast-aware text/accent |
-| Two-device mirroring | **Implemented, device verification pending** | WebRTC data channel + QR pairing, two-way songs/sets/view sync. The development browser exposes no ICE candidates, so only the protocol and merge logic are covered by automated tests here |
+| Multi-device mirroring | **Implemented (host + guests), device verification pending** | WebRTC data channel + QR/clipboard pairing, host-relayed songs/sets/view/scroll/autoscroll sync. The development browser exposes no ICE candidates, so only the protocol and merge logic are covered by automated tests here |
 | Ultimate Guitar workflow | **Done (compliant)** | In-app search launcher + clipboard paste + UG text cleaner. No scraping |
 | PDF / image charts | Not started | Next major content feature |
 | Backing tracks / MIDI / projection | Not started | Later phase |
@@ -90,11 +90,11 @@ Non-goals for this phase: accounts, subscriptions, cloud hosting, social feature
 
 **Acceptance:** text and chords remain readable at 0/25/50/75/100; setting persists across reloads.
 
-### M8 — Two-device mirroring 🟡
-- WebRTC data channel, no server.
+### M8 — Multi-device mirroring 🟡
+- WebRTC data channel, no server. One host, many guests (hub-and-spoke relay).
 - SDP offer/answer compressed with zlib + base64url, exchanged by QR or text code.
 - QR generation and camera scanning (`qrcode`, `jsqr`), both lazily loaded.
-- Protocol: `hello`, `snapshot`, `song`, `song-del`, `setlist`, `setlist-del`, `view`.
+- Protocol: `hello`, `snapshot`, `song`, `song-del`, `setlist`, `setlist-del`, `view`, `scroll`, `autoscroll`.
 - Snapshot merge by `updatedAt`; live change diffing; remote-apply suppression.
 - Host-authoritative initial view; subsequent view changes both ways.
 
@@ -148,6 +148,6 @@ Non-goals for this phase: accounts, subscriptions, cloud hosting, social feature
 - Set lists with per-entry keys and pedal control.
 - Backup and restore.
 - Appearance slider.
-- Two devices mirror without a server.
+- Devices mirror without a server.
 - No scraping of third-party content.
 - Tests green: parser, transposition, import, backup extraction, pairing codec, mirror merge.

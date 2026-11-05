@@ -7,6 +7,16 @@ import { useAutoscroll, useFullscreen, usePerformanceHotkeys, useWakeLock } from
 import { useSettings } from '../store/useSettings'
 import { useStore } from '../store/useStore'
 import { useSync } from '../sync/useSync'
+import {
+  reportActiveTranspose,
+  sendAutoscroll,
+  sendScroll,
+  sendTranspose,
+  setRemoteAutoscrollHandler,
+  setRemoteScrollHandler,
+  setRemoteTransposeHandler,
+  wasRemoteViewRecent,
+} from '../sync/mirror'
 import { ChordChart } from './ChordChart'
 import { Icon } from './Icon'
 import { SongEditor } from './SongEditor'
@@ -55,19 +65,81 @@ export function SongView({
   const [editing, setEditing] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
+  const remoteScrollAt = useRef(0)
+  const scrollingRef = useRef(false)
+  const remoteAutoscrollRef = useRef(false)
   const { toggle: toggleFullscreen } = useFullscreen()
 
   useWakeLock(scrolling)
   useAutoscroll(scrollRef, {
     active: scrolling,
     speed,
-    onFinished: () => setScrolling(false),
+    onFinished: () => {
+      setScrolling(false)
+      // A peer-started autoscroll must not stop the peer when we reach the end first.
+      if (!remoteAutoscrollRef.current) sendAutoscroll(song.id, false, speed)
+    },
   })
+
+  useEffect(() => {
+    scrollingRef.current = scrolling
+  }, [scrolling])
 
   useEffect(() => {
     void touchSong(song.id)
     setProgress(0)
   }, [song.id, touchSong])
+
+  // Mirror scroll position and autoscroll with a paired device. Remote progress
+  // is applied to the local element; the echo of that programmatic scroll is
+  // ignored below. While both devices autoscroll, only meaningful drift is
+  // corrected so the two rAF loops do not fight each other.
+  useEffect(() => {
+    setRemoteScrollHandler((songId, progress) => {
+      if (songId !== song.id) return
+      const element = scrollRef.current
+      if (!element) return
+      const distance = element.scrollHeight - element.clientHeight
+      if (distance <= 0) return
+      const target = progress * distance
+      if (scrollingRef.current && Math.abs(target - element.scrollTop) < distance * 0.01) return
+      remoteScrollAt.current = Date.now()
+      element.scrollTop = target
+      setProgress(progress)
+    })
+    setRemoteAutoscrollHandler((songId, active, nextSpeed) => {
+      if (songId !== song.id) return
+      remoteAutoscrollRef.current = active
+      // Adopt the peer's speed so both devices scroll at the same rate; keep it
+      // in state only, so it does not overwrite this device's saved speed.
+      if (active && nextSpeed > 0) setSpeed(nextSpeed)
+      setScrolling(active)
+    })
+    setRemoteTransposeHandler((songId, key, nextCapo) => {
+      if (songId !== song.id) return
+      setTargetKey(key)
+      setCapo(nextCapo)
+      // Persist so the chart keeps the mirrored key after navigating away.
+      useSettings.getState().rememberKey(song.id, key)
+      useSettings.getState().rememberCapo(song.id, nextCapo)
+    })
+    // Stateful transposition: when a chart opens, assert this device's key/capo.
+    // If the open came from a peer, the buffered transposition is adopted instead
+    // of overwriting theirs.
+    reportActiveTranspose(song.id, targetKey, capo)
+    if (!wasRemoteViewRecent()) sendTranspose(song.id, targetKey, capo)
+    return () => {
+      setRemoteScrollHandler(null)
+      setRemoteAutoscrollHandler(null)
+      setRemoteTransposeHandler(null)
+    }
+  }, [song.id])
+
+  // Keep the info the host can replay to a device that joins while this song is
+  // open in step with both local and remote key/capo changes.
+  useEffect(() => {
+    reportActiveTranspose(song.id, targetKey, capo)
+  }, [song.id, targetKey, capo])
 
   useEffect(() => {
     document.title = `${song.title} — Chordstand`
@@ -113,8 +185,15 @@ export function SongView({
 
   const atTop = () => !scrollRef.current || scrollRef.current.scrollTop <= 8
 
+  const toggleScrolling = () => {
+    const next = !scrollingRef.current
+    remoteAutoscrollRef.current = false
+    setScrolling(next)
+    sendAutoscroll(song.id, next, speed)
+  }
+
   usePerformanceHotkeys({
-    onToggleScroll: () => setScrolling((value) => !value),
+    onToggleScroll: toggleScrolling,
     onPage: page,
     onNextSong: canNext
       ? () => {
@@ -140,23 +219,30 @@ export function SongView({
     const element = scrollRef.current
     if (!element) return
     const distance = element.scrollHeight - element.clientHeight
-    setProgress(distance > 0 ? Math.min(1, Math.max(0, element.scrollTop / distance)) : 0)
+    const next = distance > 0 ? Math.min(1, Math.max(0, element.scrollTop / distance)) : 0
+    setProgress(next)
+    // Skip the scroll event fired by applying a peer's position, so it does not
+    // echo back — but keep streaming while our own autoscroll is running.
+    if (scrollingRef.current || Date.now() - remoteScrollAt.current > 200) sendScroll(song.id, next)
   }
 
   const changeKey = (key: string) => {
     setTargetKey(key)
     settings.rememberKey(song.id, key)
+    sendTranspose(song.id, key, capo)
   }
 
   const changeCapo = (next: number) => {
     const bounded = Math.min(11, Math.max(0, next))
     setCapo(bounded)
     settings.rememberCapo(song.id, bounded)
+    sendTranspose(song.id, targetKey, bounded)
   }
 
   const changeSpeed = (next: number) => {
     setSpeed(next)
     settings.rememberSpeed(song.id, next)
+    if (scrollingRef.current) sendAutoscroll(song.id, true, next)
   }
 
   const exportSong = () => {
@@ -264,7 +350,7 @@ export function SongView({
 
           <button
             className={`scroll-button ${scrolling ? 'active' : ''}`}
-            onClick={() => setScrolling((value) => !value)}
+            onClick={toggleScrolling}
           >
             <Icon name={scrolling ? 'pause' : 'play'} size={18} />
             {scrolling ? 'Pause' : 'Scroll'}

@@ -13,6 +13,9 @@ export type SyncMessage =
   | { t: 'setlist'; setlist: Setlist }
   | { t: 'setlist-del'; id: string }
   | { t: 'view'; view: View }
+  | { t: 'scroll'; songId: string; progress: number }
+  | { t: 'autoscroll'; songId: string; active: boolean; speed: number }
+  | { t: 'transpose'; songId: string; key: string; capo: number }
 
 export interface SignalPayload {
   v: number

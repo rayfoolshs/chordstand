@@ -18,7 +18,19 @@ vi.mock('../store/db', () => ({
   },
 }))
 
-import { startMirroring, stopMirroring } from './mirror'
+import {
+  addPeer,
+  reportActiveTranspose,
+  sendAutoscroll,
+  sendScroll,
+  sendTranspose,
+  setRemoteAutoscrollHandler,
+  setRemoteScrollHandler,
+  setRemoteTransposeHandler,
+  startMirroring,
+  stopMirroring,
+  wasRemoteViewRecent,
+} from './mirror'
 import { useStore } from '../store/useStore'
 
 class FakeSession {
@@ -123,5 +135,98 @@ describe('mirroring', () => {
     session.onMessage?.({ t: 'song', song: song('a', 'From peer', 5) })
     expect(useStore.getState().songs.map((item) => item.title)).toContain('From peer')
     expect(session.sent).toHaveLength(0)
+  })
+
+  it('broadcasts local scroll positions and applies remote ones', () => {
+    const session = new FakeSession()
+    startMirroring(socket(session), true)
+    session.sent = []
+
+    sendScroll('a', 0.5)
+    expect(session.sent).toContainEqual({ t: 'scroll', songId: 'a', progress: 0.5 })
+
+    const applied: Array<[string, number]> = []
+    setRemoteScrollHandler((songId, progress) => applied.push([songId, progress]))
+    session.onMessage?.({ t: 'scroll', songId: 'b', progress: 0.25 })
+    expect(applied).toEqual([['b', 0.25]])
+    setRemoteScrollHandler(null)
+  })
+
+  it('broadcasts local autoscroll toggles and applies remote ones', () => {
+    const session = new FakeSession()
+    startMirroring(socket(session), true)
+    session.sent = []
+
+    sendAutoscroll('a', true, 30)
+    expect(session.sent).toContainEqual({ t: 'autoscroll', songId: 'a', active: true, speed: 30 })
+
+    const applied: Array<[string, boolean]> = []
+    setRemoteAutoscrollHandler((songId, active) => applied.push([songId, active]))
+    session.onMessage?.({ t: 'autoscroll', songId: 'b', active: false, speed: 0 })
+    expect(applied).toEqual([['b', false]])
+    setRemoteAutoscrollHandler(null)
+  })
+
+  it('broadcasts key and capo changes and applies remote ones', () => {
+    const session = new FakeSession()
+    startMirroring(socket(session), true)
+    session.sent = []
+
+    sendTranspose('a', 'G', 2)
+    expect(session.sent).toContainEqual({ t: 'transpose', songId: 'a', key: 'G', capo: 2 })
+
+    const applied: Array<[string, string, number]> = []
+    setRemoteTransposeHandler((songId, key, capo) => applied.push([songId, key, capo]))
+    session.onMessage?.({ t: 'transpose', songId: 'b', key: 'D', capo: 0 })
+    expect(applied).toEqual([['b', 'D', 0]])
+    setRemoteTransposeHandler(null)
+  })
+
+  it('sends the active transposition to a device that joins', () => {
+    const hostPeer = new FakeSession()
+    const latecomer = new FakeSession()
+    startMirroring(socket(hostPeer), true)
+    useStore.setState({ songs: [song('a', 'Alpha')], view: { name: 'song', songId: 'a' } })
+    reportActiveTranspose('a', 'G', 2)
+
+    addPeer(socket(latecomer), true)
+
+    expect(latecomer.sent).toContainEqual({ t: 'transpose', songId: 'a', key: 'G', capo: 2 })
+  })
+
+  it('replays the last transposition to a chart that mounts after it arrived', () => {
+    const session = new FakeSession()
+    startMirroring(socket(session), false)
+    session.onMessage?.({ t: 'transpose', songId: 'b', key: 'D', capo: 1 })
+
+    const applied: Array<[string, string, number]> = []
+    setRemoteTransposeHandler((songId, key, capo) => applied.push([songId, key, capo]))
+    expect(applied).toEqual([['b', 'D', 1]])
+    setRemoteTransposeHandler(null)
+  })
+
+  it('flags a peer-driven view so the chart adopts instead of asserting', () => {
+    const session = new FakeSession()
+    startMirroring(socket(session), false)
+    useStore.setState({ songs: [song('a', 'Alpha')] })
+
+    session.onMessage?.({ t: 'view', view: { name: 'song', songId: 'a' } })
+
+    expect(wasRemoteViewRecent()).toBe(true)
+  })
+
+  it('relays a guest edit to the other guests when hosting', () => {
+    const first = new FakeSession()
+    const second = new FakeSession()
+    startMirroring(socket(first), true)
+    addPeer(socket(second), true)
+    first.sent = []
+    second.sent = []
+
+    first.onMessage?.({ t: 'song', song: song('x', 'From guest', 5) })
+
+    expect(useStore.getState().songs.map((item) => item.title)).toContain('From guest')
+    expect(second.sent).toContainEqual({ t: 'song', song: song('x', 'From guest', 5) })
+    expect(first.sent).toHaveLength(0)
   })
 })

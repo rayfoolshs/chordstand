@@ -31,6 +31,7 @@ export type IconName =
   | 'copy'
   | 'database'
   | 'grip'
+  | 'refresh'
 
 const PATHS: Record<IconName, ReactNode> = {
   back: <path d="M14.5 5 7.5 12l7 7" />,
@@ -143,6 +144,12 @@ const PATHS: Record<IconName, ReactNode> = {
     </>
   ),
   grip: <path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" />,
+  refresh: (
+    <>
+      <path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3" />
+      <path d="M19.5 4.5V9H15" />
+    </>
+  ),
 }
 
 export function Icon({

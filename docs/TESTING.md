@@ -3,7 +3,7 @@
 ## Automated
 
 ```bash
-npm test           # Vitest, 34 tests
+npm test           # Vitest, 45 tests
 npx tsc --noEmit   # strict typecheck
 npm run build      # typecheck + Vite build + service-worker asset injection
 ```
@@ -16,7 +16,7 @@ Coverage:
 | `src/core/onsongBackup.test.ts` | SQLite song extraction from several column layouts, embedded metadata, association-table set lists, JSON-column set lists, media-table exclusion |
 | `src/core/ug.test.ts` | UG search URL, page-chrome removal, metadata retention, blank-line collapsing |
 | `src/sync/protocol.test.ts` | SDP compress/decompress, offer/answer types, whitespace/URL-wrapped codes, invalid codes |
-| `src/sync/mirror.test.ts` | Host snapshot, merge by `updatedAt`, local edit/delete broadcasts, view broadcasts, no echo of remote applies |
+| `src/sync/mirror.test.ts` | Host snapshot, merge by `updatedAt`, local edit/delete broadcasts, view broadcasts, no echo of remote applies, guest-to-guest relay, scroll/autoscroll/key-capo sync and replay |
 
 ## Manual smoke test (single device)
 
@@ -74,10 +74,10 @@ Coverage:
 - [ ] The cleaner removes Download/Print/author lines but keeps `Key`, `Capo` and the chart.
 - [ ] Import the candidate and edit it if needed.
 
-## Manual test — two-device mirroring
+## Manual test — multi-device mirroring
 
 ### Prerequisites
-- Two iPads (or an iPad and a Mac) running the deployed HTTPS app, on the **same Wi-Fi**.
+- Two or more iPads (or iPads and a Mac) running the deployed HTTPS app, on the **same Wi-Fi**.
 - Camera permission for QR scanning, or the text-code fallback.
 - Local network permission allowed on iOS.
 - Different libraries on each device is the most useful test.
@@ -88,6 +88,16 @@ Coverage:
 - [ ] B shows an answer QR; A taps **Scan answer** and scans it.
 - [ ] Both dialogs show **Devices are mirrored**; both header link icons turn green.
 - [ ] If scanning fails: copy/show text codes and paste them; the same connection should form.
+- [ ] With no camera: **Copy code** on A → **Paste host code & continue** on B → **Copy code** on B → **Paste answer & connect** on A; the session forms.
+- [ ] Reopen the dialog after pairing: **Reconnect to last device** appears and resumes the same role.
+
+### Adding more devices (3+)
+- [ ] With A and B connected, A taps **Add another device**; a fresh QR appears and B stays connected.
+- [ ] Pair device C the same way; all three show the mirrored state.
+- [ ] Add or edit a song on C; the change reaches A and B (the host relays it).
+- [ ] Scroll or autoscroll on C; A and B follow.
+- [ ] Close device C; A and B keep mirroring and A's connected count drops.
+- [ ] Stop the host (A); the guests report the session ended but keep their data.
 
 ### Synchronisation
 - [ ] B starts empty; after pairing it receives A's songs and sets.
@@ -96,6 +106,11 @@ Coverage:
 - [ ] Delete a song on A; B removes it and its set entries.
 - [ ] Create a set on B; A sees it; reorder it on A; B updates.
 - [ ] Open a song on A; B opens the same song.
+- [ ] Scroll a long chart on A; B follows to the same place (and scrolling B moves A).
+- [ ] Tap Scroll on A; B starts autoscrolling the same chart; Pause on either stops both.
+- [ ] Change the key (and capo) on A; B shows the same transposition.
+- [ ] On B, leave the chart and reopen it; it opens with the mirrored key.
+- [ ] With A showing a chart on a changed key, pair device C; C opens the chart at that key.
 - [ ] Open a set list on B; A opens it.
 - [ ] Change a set entry's key/capo; the other side sees the new values.
 - [ ] Close the dialogs (keep apps open); make an edit; it still syncs.

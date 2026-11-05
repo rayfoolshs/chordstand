@@ -19,7 +19,7 @@
       another Chordstand device on the same Wi-Fi
 ```
 
-There is no backend. The app is a static bundle; all data is on-device unless two devices explicitly pair for mirroring.
+There is no backend. The app is a static bundle; all data is on-device unless devices explicitly pair for mirroring.
 
 ## Stack
 
@@ -128,7 +128,7 @@ displayChord = transpose(sourceChord, inlineOffset + semitones(songKey → targe
 
 `applyAppearance(value)` blends `NIGHT_BG` → `DUSK_BG` → `DAY_BG` on a non-linear ramp. Text colour switches at a background-luminance threshold, and accent/danger/good colours are nudged toward black or white until they meet a contrast target. Panels, lines and muted text are derived from the background and text. CSS consumes only variables, so theme changes are a handful of style writes.
 
-## Two-device mirroring
+## Multi-device mirroring
 
 ### Pairing
 
@@ -136,9 +136,12 @@ displayChord = transpose(sourceChord, inlineOffset + semitones(songKey → targe
 2. The offer is compressed with zlib, base64url-encoded and prefixed `CS1.`.
 3. The code is shown as a QR (and a text code fallback).
 4. Guest scans/pastes it, sets the remote offer, creates an answer, and shows its own `CS1.` code.
-5. Host scans/pastes the answer. The data channel opens and both sides start mirroring.
+5. Host scans/pastes the answer. The data channel opens and the guest joins the session.
+6. The host repeats steps 1–5 for each extra device; each guest pairs with the host once.
 
 The `CS1.` codec lives in `src/sync/protocol.ts`; the peer connection in `src/sync/SyncSession.ts`. No STUN/TURN account is required, but public STUN servers are listed for better reachability. If no ICE candidates are produced, the app reports "No network path is available" instead of showing a dead QR.
+
+The host holds one `SyncSession` per guest; guests hold one. `src/sync/mirror.ts` keeps a list of peers, and the host relays every guest's message to the others so the whole group converges.
 
 ### Messages
 
@@ -150,23 +153,30 @@ The `CS1.` codec lives in `src/sync/protocol.ts`; the peer connection in `src/sy
 { t:'setlist', setlist }
 { t:'setlist-del', id }
 { t:'view', view }
+{ t:'scroll', songId, progress }
+{ t:'autoscroll', songId, active, speed }
+{ t:'transpose', songId, key, capo }
 ```
 
 ### Merge rules
 
-- On connect, both peers send `hello`, a full `snapshot`, and (host only) their current `view`.
+- On connect, each peer sends `hello`, a full `snapshot`, and (host only) its current `view`.
 - Snapshots merge by id, keeping the entity with the newer `updatedAt`.
 - Live changes are detected by diffing the Zustand arrays: newer/unknown ids are sent as upserts, missing ids as deletes.
+- The host relays every guest message to the other guests (skipping the origin), so a change made on one guest reaches them all.
 - Remote applies set an `applyingRemote` guard so they are not echoed back.
-- The host's initial view wins; after that, `view` messages flow both ways and open the same song/set on both devices.
+- The host's initial view wins; after that, `view` messages flow both ways and open the same song/set on every device.
+- `scroll` carries the current song id and the position as a fraction (0–1) of the scrollable distance, so devices with different screen or font sizes land on the same spot. Sends are throttled to ~16/s with a trailing update, and the view ignores the echo of a programmatic scroll so peers do not loop.
+- `autoscroll` mirrors the start/pause toggle for a song, along with the speed so devices scroll at the same rate. Each device runs its own rAF loop, so while several are autoscrolling the view only corrects drift larger than 1% of the chart instead of fighting the peer's loop; a device that was started remotely does not broadcast a stop when it reaches the end first.
+- `transpose` mirrors the live key and capo chosen in the song view (the per-device stage state, not the set-list entry). The receiver applies it and persists it to its own settings so the chart stays transposed after navigating away. It is stateful: opening a chart asserts the current key/capo, a chart opened by a peer adopts the incoming value instead of asserting (so two devices do not fight), and the host replays its current transposition to a device that joins while the song is open. A late-arriving transposition is buffered and replayed when the chart mounts.
 - Set list entries carry their own key/capo/notes, so those travel with the set list.
 
 ### Limitations
 
-- Two devices only.
+- Hub-and-spoke: one host relays to the guests, so the host is a single point of failure. A small number of devices is the practical limit.
 - No tombstones: a song deleted while offline can be reintroduced by the other device's snapshot.
 - Conflicts are last-write-wins by `updatedAt`; there is no merge UI.
-- Both apps must stay open; there is no background sync.
+- Every app must stay open; there is no background sync.
 
 ## PWA and offline
 

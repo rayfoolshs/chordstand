@@ -8,7 +8,7 @@ A local-first chord chart and set list app for working musicians. Built as a bet
 - **Per-set key and capo**: the song stays in its original key; each set list entry can be transposed or capo'd independently.
 - **Stage controls**: autoscroll, font sizing, lyrics-only mode, fullscreen, and keyboard/Bluetooth page-turner support.
 - **Night → daylight slider**: blend the whole interface continuously, with a one-tap dark/light toggle in the library header and song controls.
-- **Mirror two devices**: pair two iPads over the local network with a QR code; songs, set lists and the current screen stay in sync, with no server.
+- **Mirror multiple devices**: pair iPads over the local network with a QR code or a pasted code; one hosts, the others join, and songs, set lists and the current screen stay in sync with no server.
 - **Bring in chords from the web**: search Ultimate Guitar from the Import screen, copy a chart and paste it straight in (or use the clipboard button).
 - **Offline PWA**: installs to the iPad home screen, works with no network, keeps the screen awake while scrolling.
 - **No accounts, no subscription, no server**. Everything is stored in the browser's IndexedDB on your device.
@@ -31,7 +31,7 @@ This repo deploys itself to GitHub Pages on every push to `main` via `.github/wo
 
 - [Build plan](docs/BUILD_PLAN.md) — scope, milestones, current status, risks.
 - [Architecture](docs/ARCHITECTURE.md) — data model, import/parser pipeline, sync protocol, theme engine.
-- [Testing](docs/TESTING.md) — automated coverage, manual QA, two-device mirroring checklist.
+- [Testing](docs/TESTING.md) — automated coverage, manual QA, multi-device mirroring checklist.
 - [Design decisions](docs/DECISIONS.md) — why local-first, WebRTC pairing, and no Ultimate Guitar scraping.
 
 ### Install on iPad
@@ -72,24 +72,30 @@ Supported inputs:
 
 PDFs and scanned images are **not** supported yet. Inline `{key:}` and `{capo:}` directives are preserved in the source text but are not applied mid-chart.
 
-## Mirroring two devices
+## Mirroring devices
 
-Two Chordstand instances can mirror each other directly over the local network — no accounts, no relay, no internet.
+Chordstand instances can mirror directly over the local network — no accounts, no relay, no internet. One iPad is the **host**; any number of others **join** it (the host relays changes between them).
 
-1. Put both devices on the same Wi-Fi.
+1. Put the devices on the same Wi-Fi.
 2. On device A: **link icon → Host this session**. A QR code appears.
 3. On device B: **link icon → Join a session → Scan host code**, and point the camera at A.
 4. B shows an answer QR. Scan it on A with **Scan answer**. The link icon turns green when connected.
+5. To add a third device, A taps **Add another device** in the connected panel and repeats steps 3–4. Each extra device pairs with the host once.
 
-Camera scanning needs HTTPS (the installed PWA qualifies). If the camera is unavailable, each step has a **Show text code** / **Paste code** fallback.
+Camera scanning needs HTTPS (the installed PWA qualifies). If the camera is unavailable, every step also works by copy and paste: tap **Copy code** on one iPad and **Paste host code** / **Paste answer & connect** on the other. On the same Apple ID, Universal Clipboard carries the code across automatically, so no typing is needed.
+
+Chordstand remembers whether this iPad hosted or joined last time. **Reconnect to last device** resumes that role in one tap per device, reusing the clipboard so you often do not scan at all.
 
 Once connected:
 
-- Songs, set lists and library edits merge both ways (newest `updatedAt` wins on a conflict).
-- Picking a song or set list on either device opens it on the other.
+- Songs, set lists and library edits merge both ways (newest `updatedAt` wins on a conflict), and the host relays them so every device converges.
+- Picking a song or set list on any device opens it on the others.
+- Changing a chart's key or capo transposes it on the others, and opening a chart adopts the mirrored key even on a device that was not watching.
+- Scrolling a chart on one device scrolls the others to the same place (a fraction of the chart, so different screen and font sizes still line up).
+- Starting or pausing autoscroll on one device does the same on the others, so the second screen keeps pace hands-free.
 - Key, capo and stage notes travel with set list entries.
 - Closing the dialog keeps the session running; the header link icon stays green. **Stop mirroring** ends it.
-- The data channel is encrypted (DTLS) and direct. Both apps must stay open.
+- The data channel is encrypted (DTLS) and direct. Every app must stay open.
 
 iOS asks for local network and camera permission the first time. If the host reports *"No network path is available"*, allow local network access or check that both devices really are on the same Wi-Fi.
 
@@ -170,7 +176,7 @@ The parser keeps each song's raw source text, so export is lossless even for con
 ## Known limitations
 
 - PDF/image charts, backing tracks, MIDI and projection are not implemented.
-- Mirroring is two-device and LAN-only. It needs camera/local-network permission for QR pairing, and the live ICE path still needs verification on two physical devices (see [Testing](docs/TESTING.md)).
+- Mirroring is LAN-only and hub-and-spoke: one host relays to the guests, so the host is a single point of failure and a handful of devices is the practical limit. It needs camera/local-network permission for QR pairing, and the live ICE path still needs verification on physical devices (see [Testing](docs/TESTING.md)).
 - Mirroring conflicts are last-write-wins; a song deleted offline can be reintroduced by a peer's snapshot.
 - Ultimate Guitar cannot be fetched automatically for legal and technical reasons; the app links to their search and imports what you copy.
 - Inline `{key:}` / `{capo:}` changes are stored but ignored while rendering.
@@ -180,10 +186,10 @@ The parser keeps each song's raw source text, so export is lossless even for con
 
 ## Roadmap
 
-1. Verify and harden two-device mirroring on physical iPads (reconnect, tombstones, conflict review).
+1. Verify and harden mirroring on physical iPads (multi-device relay, reconnect, tombstones, conflict review).
 2. PDF charts with page-turn and crop.
 3. Song editor improvements: chord picker, repeat/bar shorthand, section reordering via Flow.
 4. Library virtualization and a 2,000-song performance pass.
 5. Backing tracks, click, and set-list auto-advance.
 6. External display / projector output.
-7. Optional hosted relay for cross-network mirroring and >2 devices.
+7. Optional hosted relay for cross-network mirroring.

@@ -12,13 +12,13 @@ Short ADR-style notes for the choices that shape the app.
 
 ## ADR-002 — Mirroring over WebRTC, paired by QR
 
-**Decision:** use a direct WebRTC data channel with offline SDP exchange. Pair with two QR scans, with copy/paste text codes as a fallback. No signalling server.
+**Decision:** use a direct WebRTC data channel with offline SDP exchange. Pair with two QR scans, with copy/paste text codes as a fallback. No signalling server. One iPad hosts and the others join it; the host relays messages between the guests (hub-and-spoke).
 
-**Why:** the requirement was two devices on the same network, with no infrastructure. WebRTC is encrypted, browser-native, and works without an account. QR removes the need to type SDP.
+**Why:** the requirement was devices on the same network, with no infrastructure. WebRTC is encrypted, browser-native, and works without an account. QR removes the need to type SDP.
 
-**Cost:** pairing is a deliberate two-step ceremony; ICE can fail on locked-down networks; the app can only mirror two devices; the implementation cannot be verified in a browser environment that exposes no ICE candidates.
+**Cost:** pairing is a deliberate two-step ceremony per device; ICE can fail on locked-down networks; the host is a single point of failure and a handful of devices is the practical limit; the implementation cannot be verified in a browser environment that exposes no ICE candidates.
 
-**Alternatives considered:** a local Node sync server (reliable but needs a laptop and HTTP-only PWA), a hosted relay (best UX but needs infrastructure and an internet connection).
+**Alternatives considered:** a local Node sync server (reliable but needs a laptop and HTTP-only PWA), a hosted relay (best UX, cross-network, but needs infrastructure and an internet connection), a full mesh (no single point of failure, but O(N²) pairing).
 
 ## ADR-003 — No scraping of Ultimate Guitar
 
@@ -66,6 +66,6 @@ Short ADR-style notes for the choices that shape the app.
 
 **Decision:** merge snapshots by id and `updatedAt`; broadcast full entities on every change; suppress echoes with a remote-apply guard.
 
-**Why:** simple, deterministic and sufficient for a two-device band setup. Set list data is self-contained, so entries travel with their parent.
+**Why:** simple, deterministic and sufficient for a small band setup. Set list data is self-contained, so entries travel with their parent.
 
 **Cost:** no tombstones; deletions made offline can be reintroduced by a peer snapshot. No merge UI for simultaneous edits. These are documented as v1 limitations.
