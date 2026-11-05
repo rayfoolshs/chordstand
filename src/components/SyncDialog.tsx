@@ -78,25 +78,23 @@ export function SyncDialog() {
     }
   }
 
-  // Host offers share as a link that auto-joins; guest answers share as text.
+  // Share a self-contained message (instructions + code, plus a link for the
+  // offer) so it survives AirDrop or Messages between iPads on different Apple
+  // IDs, where the clipboard does not sync.
   const share = async (value: string, kind: 'offer' | 'answer') => {
     const link = `${window.location.origin}${window.location.pathname}#pair=${encodeURIComponent(value)}`
+    const message =
+      kind === 'offer'
+        ? `Chordstand: on this iPad open the app, tap "Join a session" and paste the code below.\n\n${value}\n\nOr open this link to join: ${link}`
+        : `Chordstand: on the host iPad tap "Paste answer & connect" and paste the code below.\n\n${value}`
     try {
       if (canShare) {
-        await navigator.share(
-          kind === 'offer'
-            ? {
-                title: 'Chordstand session',
-                text: 'Join my Chordstand session: open this link, or paste the code into Join a session.',
-                url: link,
-              }
-            : { title: 'Chordstand answer code', text: value },
-        )
+        await navigator.share({ title: 'Chordstand pairing', text: message })
         setShared(true)
         window.setTimeout(() => setShared(false), 1600)
         return
       }
-      await navigator.clipboard.writeText(kind === 'offer' ? link : value)
+      await navigator.clipboard.writeText(message)
       setCopied(true)
       window.setTimeout(() => setCopied(false), 1600)
     } catch {
@@ -176,7 +174,8 @@ export function SyncDialog() {
             {status === 'failed' && error ? <p className="sync-error">{error}</p> : null}
             <p className="fine-print">Both devices must be on the same Wi-Fi. The connection is direct and encrypted.</p>
             <p className="fine-print">
-              On the same Apple ID, Universal Clipboard carries a copied code between the iPads automatically.
+              Different Apple IDs? Send the code with AirDrop or Messages. On the same Apple ID, Universal
+              Clipboard carries it across automatically.
             </p>
           </>
         ) : (
@@ -280,11 +279,12 @@ function HostPanel({
   return (
     <div className="stack">
       <div className="sync-step">
-        <h3>1. Share this with the other iPad</h3>
+        <h3>1. Send this code to the other iPad</h3>
         <PairCode value={code} copied={copied} shared={shared} canShare={canShare} onCopy={onCopy} onShare={onShare} />
         <p className="fine-print">
-          On the other iPad, choose <strong>Join a session</strong> and paste the code. Sharing the link lets
-          them tap it instead. On the same Apple ID, the copied code appears there automatically.
+          Tap <strong>Share</strong> to send it by AirDrop or Messages, then on that iPad choose{' '}
+          <strong>Join a session</strong> and paste it. Universal Clipboard only carries it automatically on the
+          same Apple ID.
         </p>
       </div>
 
@@ -294,7 +294,7 @@ function HostPanel({
           <p className="sync-wait">Connecting…</p>
         ) : (
           <>
-            <p className="muted small">After they join, they share a second code. Paste it here to connect.</p>
+            <p className="muted small">They send their answer back the same way. Paste it here to connect.</p>
             <textarea
               rows={3}
               value={paste}
@@ -366,7 +366,8 @@ function JoinPanel({
         <div className="sync-step">
           <h3>Paste the host code</h3>
           <p className="muted small">
-            Paste the code the host shared. If they sent a link, opening it joins automatically.
+            Ask the host to send the code with AirDrop or Messages, then paste it below. A shared link also
+            joins automatically.
           </p>
           <textarea
             rows={3}
@@ -395,7 +396,8 @@ function JoinPanel({
         <h3>Share this answer with the host</h3>
         <PairCode value={code} copied={copied} shared={shared} canShare={canShare} onCopy={onCopy} onShare={onShare} />
         <p className="fine-print">
-          The host pastes this code to finish connecting. On the same Apple ID, it reaches them automatically.
+          Send this back to the host with AirDrop or Messages, then they paste it. On the same Apple ID it
+          reaches them automatically.
         </p>
       </div>
       <p className="sync-wait">Waiting for the host to connect…</p>
