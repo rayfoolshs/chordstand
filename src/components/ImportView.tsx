@@ -8,18 +8,7 @@ import { Icon } from './Icon'
 /** Remembered across visits so returning to Import does not re-add the same chart. */
 let lastPickedUp = ''
 
-export function ImportView({
-  onBack,
-  onDone,
-  initialText,
-  onInitialConsumed,
-}: {
-  onBack: () => void
-  onDone: () => void
-  /** A chart that arrived through a #import= deep link. */
-  initialText?: string
-  onInitialConsumed?: () => void
-}) {
+export function ImportView({ onBack, onDone }: { onBack: () => void; onDone: () => void }) {
   const songs = useStore((state) => state.songs)
   const addSongs = useStore((state) => state.addSongs)
   const restoreBackup = useStore((state) => state.restoreBackup)
@@ -35,7 +24,6 @@ export function ImportView({
   const [busy, setBusy] = useState(false)
   const [dragging, setDragging] = useState(false)
   const [importing, setImporting] = useState(false)
-  const [linkNotice, setLinkNotice] = useState(false)
   const [clipboardNotice, setClipboardNotice] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -74,18 +62,6 @@ export function ImportView({
       // Clipboard permission can be denied; the textarea still works.
     }
   }
-
-  // A chart delivered by a #import= link (an iOS Shortcut, typically) is added
-  // to the preview once, then the caller clears it so a reload does not repeat it.
-  const linkConsumed = useRef(false)
-  useEffect(() => {
-    if (!initialText || linkConsumed.current) return
-    linkConsumed.current = true
-    addPastedText(initialText)
-    setLinkNotice(true)
-    onInitialConsumed?.()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialText])
 
   /**
    * Pick up a chart copied in Safari (usually from Ultimate Guitar) when the
@@ -186,20 +162,6 @@ export function ImportView({
               </p>
             </div>
             <button className="ghost-button" onClick={() => setClipboardNotice(false)}>
-              Dismiss
-            </button>
-          </div>
-        )}
-
-        {linkNotice && (
-          <div className="restore-card">
-            <div>
-              <strong>Chart received from the link</strong>
-              <p className="muted small">
-                It is in the preview below. Check it over, then tap Import.
-              </p>
-            </div>
-            <button className="ghost-button" onClick={() => setLinkNotice(false)}>
               Dismiss
             </button>
           </div>

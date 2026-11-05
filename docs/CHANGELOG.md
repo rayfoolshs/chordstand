@@ -34,8 +34,6 @@ Notable changes to Chordstand. The app is a static PWA deployed from `main`; eve
 
 ### Small things
 - Creator credit in the library header and README: **Ray Foo · www.rayfooproductions.com**.
-- **Chart deep links:** `#import=<url-encoded chart>` opens the import preview with the chart loaded, so an
-  iOS Shortcut can send a chart from Safari's share sheet. See [the shortcut guide](SHORTCUT.md).
 - **Automatic clipboard pick-up:** a chart copied in Safari is added to the import preview as soon as the app
   becomes visible again. Only text that looks like a chord chart is accepted, and nothing is saved until you
   tap Import.
