@@ -39,6 +39,10 @@ jobs:
           # Project sites live under /<repo>/. This also configures the PWA
           # service worker scope and manifest paths.
           PAGES_BASE: /${{ github.event.repository.name }}/
+          # Optional Google Drive backup. Set the repository secrets to the
+          # OAuth client ID and secret from the Google Cloud project.
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_GOOGLE_CLIENT_SECRET: ${{ secrets.VITE_GOOGLE_CLIENT_SECRET }}
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

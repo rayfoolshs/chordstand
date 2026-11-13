@@ -5,6 +5,19 @@ Notable changes to Chordstand. The app is a static PWA deployed from `main`; eve
 
 ## Unreleased
 
+### Optional Google Drive backups
+- Storage & backups now has a **Google Drive** section. The player signs in with their Google account and the
+  same backup zip is uploaded to a `Chordstand` folder in their Drive. The app stays static and backend-free.
+- The Google Cloud OAuth client ID and secret are set once at build time with `VITE_GOOGLE_CLIENT_ID` and
+  `VITE_GOOGLE_CLIENT_SECRET`; the player never sees them. Sign-in uses the OAuth 2.0 authorization code flow
+  with PKCE, so the browser goes to Google's own consent page and returns to the app. Google's "Web
+  application" client type requires the secret in the token exchange, so it is compiled into the app; it is
+  a build-time value, not a true credential. The `drive.file` scope only lets the app see the files it
+  created.
+- **Back up to Google Drive** uploads on demand; **Restore from Google Drive** lists the backups and merges
+  one back into the library. The access and refresh tokens live in `sessionStorage` and are revoked on
+  disconnect.
+
 ### Pairing rebuilt on PeerJS
 - Pairing previously exchanged hand-written WebRTC offer/answer codes by QR, copy/paste, AirDrop or a shared
   link. The exchange worked, but on iPadOS ICE reached `connected` while the data channel never opened, so

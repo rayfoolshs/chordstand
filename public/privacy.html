@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy policy — Chordstand</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #14110f;
+        --panel: #1d1815;
+        --text: #f3ece4;
+        --muted: #b9a99a;
+        --accent: #f0b35a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+        padding: 2rem 1rem;
+      }
+      main {
+        max-width: 42rem;
+        margin: 0 auto;
+        background: var(--panel);
+        border: 1px solid #2a2320;
+        border-radius: 1rem;
+        padding: 1.5rem 1.75rem;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 0 0 0.25rem;
+      }
+      h2 {
+        font-size: 1.05rem;
+        margin: 1.5rem 0 0.5rem;
+        color: var(--accent);
+      }
+      p,
+      li {
+        color: var(--muted);
+      }
+      a {
+        color: var(--accent);
+      }
+      .updated {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Privacy policy</h1>
+      <p class="updated">Last updated 13 November 2026</p>
+
+      <p>
+        Chordstand is an offline-first chart library. It runs entirely in your browser. There is no
+        Chordstand server and no account with Chordstand.
+      </p>
+
+      <h2>What stays on your device</h2>
+      <p>
+        Your songs, setlists, settings, and the app's own storage are kept in your browser's storage
+        (IndexedDB and localStorage) on this device. They are not sent to Chordstand.
+      </p>
+
+      <h2>Optional Google Drive backup</h2>
+      <p>
+        If you choose <strong>Sign in with Google Drive</strong>, Google asks you to authorize the app
+        with the <code>drive.file</code> scope. That scope lets Chordstand create and read only the
+        files it creates in your Drive. It cannot see the rest of your Drive. Backups are written to a
+        <code>Chordstand</code> folder in your Drive.
+      </p>
+      <p>
+        The app receives an access token and stores it in your browser's session storage. It is
+        removed when you close the tab or press <strong>Disconnect</strong>. Google's own privacy
+        policy applies to the sign-in and to Drive storage.
+      </p>
+
+      <h2>No analytics or tracking</h2>
+      <p>
+        The app does not use analytics, advertising, or tracking cookies. It does not collect personal
+        information. The only network requests are the ones you trigger: loading the app, the optional
+        Google sign-in, and the optional Drive backup.
+      </p>
+
+      <h2>Your control</h2>
+      <p>
+        You can remove your data at any time by clearing the app's storage in your browser, or by
+        deleting the <code>Chordstand</code> folder in your Google Drive. You can revoke the app's
+        access from your Google account's security settings.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        Questions about this policy: <a href="mailto:rayfooproductions@gmail.com">rayfooproductions@gmail.com</a>.
+      </p>
+    </main>
+  </body>
+</html>

@@ -3,7 +3,7 @@
 ## Automated
 
 ```bash
-npm test           # Vitest, 46 tests
+npm test           # Vitest, 66 tests
 npx tsc --noEmit   # strict typecheck
 npm run build      # typecheck + Vite build + service-worker asset injection
 ```
@@ -15,7 +15,7 @@ Coverage:
 | `src/core/core.test.ts` | OnSong metadata, title/artist shorthand, chords-over-lyrics, ChordPro directives, inline transpose, key detection, round-trip export, duplicates |
 | `src/core/onsongBackup.test.ts` | SQLite song extraction from several column layouts, embedded metadata, association-table set lists, JSON-column set lists, media-table exclusion |
 | `src/core/ug.test.ts` | UG search URL, page-chrome removal, metadata retention, blank-line collapsing, clipboard chart detection |
-
+| `src/core/googleDrive.test.ts` | PKCE sign-in URL, redirect code exchange, state mismatch, Drive folder creation, upload, list, download and error mapping |
 | `src/sync/mirror.test.ts` | Host snapshot, merge by `updatedAt`, local edit/delete broadcasts, view broadcasts, no echo of remote applies, guest-to-guest relay, scroll/autoscroll/key-capo sync and replay |
 
 ## Manual smoke test (single device)
@@ -69,6 +69,20 @@ Coverage:
 - [ ] "Export all songs" produces a zip that re-imports cleanly.
 - [ ] "Protect storage from cleanup" reports whether persistence was granted.
 - [ ] Restoring the backup zip on a clean origin recreates songs and set lists.
+
+### Google Drive backups
+- [ ] With `VITE_GOOGLE_CLIENT_ID` and `VITE_GOOGLE_CLIENT_SECRET` set, Storage & backups shows a "Google
+      Drive" section with a "Sign in with Google Drive" button.
+- [ ] With either env var unset, the section says "Google Drive is not configured in this build" and no
+      sign-in button appears.
+- [ ] "Sign in with Google Drive" leaves the app, opens Google's consent page, and returns to the app.
+- [ ] After returning, the panel shows "Connected" and the Drive token is stored in sessionStorage.
+- [ ] "Back up to Google Drive" creates a `Chordstand` folder and a dated zip in the user's Drive.
+- [ ] The last Drive backup timestamp survives a reload.
+- [ ] "Restore from Google Drive" lists the backups, and restoring one merges the songs and set lists.
+- [ ] Deleting a backup removes it from Drive and from the list.
+- [ ] Disconnect clears the token and the panel shows "Not connected".
+- [ ] A cancelled or mismatched consent shows a readable message instead of a blank panel.
 
 ### Ultimate Guitar workflow
 - [ ] Search opens UG's title search in a new tab.

@@ -33,6 +33,7 @@ export type IconName =
   | 'grip'
   | 'refresh'
   | 'palette'
+  | 'cloud'
 
 const PATHS: Record<IconName, ReactNode> = {
   back: <path d="M14.5 5 7.5 12l7 7" />,
@@ -159,6 +160,7 @@ const PATHS: Record<IconName, ReactNode> = {
       <circle cx="14" cy="6.8" r="1" fill="currentColor" stroke="none" />
     </>
   ),
+  cloud: <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />,
 }
 
 export function Icon({

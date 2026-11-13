@@ -4,6 +4,7 @@ import { saveBackupFile } from '../core/backupShare'
 import { backupFileName, describeBackupAge, estimateLibraryBytes, formatBytes } from '../core/storage'
 import { useSettings } from '../store/useSettings'
 import { useStore } from '../store/useStore'
+import { DriveBackup } from './DriveBackup'
 import { Icon } from './Icon'
 import { Modal } from './Modal'
 
@@ -161,6 +162,8 @@ export function StoragePanel({ open, onClose }: { open: boolean; onClose: () => 
         </div>
 
         {notice ? <p className="storage-notice">{notice}</p> : null}
+
+        <DriveBackup songs={songs} setlists={setlists} />
 
         <p className="fine-print">
           {persisted === true

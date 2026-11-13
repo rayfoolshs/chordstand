@@ -22,14 +22,15 @@ OnSong for a band that already has a big `.onsong` library.
 - **Offline PWA**: installs to the iPad home screen, works with no network, keeps the screen awake while
   scrolling.
 - **No accounts, no subscription.** Everything is stored in the browser's IndexedDB on your device; pairing
-  borrows a free public signalling service, then the devices talk directly.
+  borrows a free public signalling service, then the devices talk directly. An optional Google Drive backup
+  lets you keep a copy in your own Drive if you sign in.
 
 ## Run it
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 46 Vitest tests: parser, transpose, import, backup, clipboard, mirror merge
+npm test           # 66 Vitest tests: parser, transpose, import, backup, clipboard, mirror merge, Drive
 npm run build      # production build in dist/
 npm run preview    # serve the production build
 ```
@@ -189,9 +190,10 @@ keyboard/HID mode and the mappings above work. Web Bluetooth is not available in
 ## Data and backups
 
 Charts live in IndexedDB in this browser profile. There is no cloud sync: pairing borrows a signalling service
-for the handshake only, and the mirroring itself is direct between devices. The original uploaded
-`.zip`/`.backup`/`.onsong` files are **not** copied onto the iPad — only the parsed songs and metadata are
-kept, so a backup is the only copy you can move into the Files app or iCloud Drive.
+for the handshake only, and the mirroring itself is direct between devices. The optional Google Drive backup
+is the only cloud feature, and it is opt-in. The original uploaded `.zip`/`.backup`/`.onsong` files are **not**
+copied onto the iPad — only the parsed songs and metadata are kept, so a backup is the only copy you can move
+into the Files app or iCloud Drive.
 
 **Library menu → Storage & backups** shows:
 
@@ -202,6 +204,41 @@ kept, so a backup is the only copy you can move into the Files app or iCloud Dri
   one step (falls back to a normal download).
 - **Export all songs** — a zip of `.onsong` files that can be imported anywhere.
 - **Protect storage from cleanup** — requests persistent storage from the browser.
+
+### Google Drive backups (optional)
+
+The same panel can also send the backup to your own Google Drive. This is opt-in: the app stays static and
+backend-free, and nothing is sent to Google until you press **Sign in with Google Drive**.
+
+The app owner sets up the Google Cloud project once; the player only signs in with their Gmail account:
+
+1. In the Google Cloud Console, create a **Web application** OAuth client and enable the **Google Drive API**.
+2. Add the app's origin (for example `https://rayfoolshs.github.io` or `http://localhost:5173`) and its
+   redirect URI to the client's authorized values. The redirect URI is the app's own URL, without a query
+   string or hash.
+3. On the OAuth consent screen, set **User type** to **External** and **Publishing status** to **In
+   production** (the **Publish app** button). This lets anyone with a Google account sign in, not just
+   listed test users. Add a privacy policy URL and the authorized domain (`rayfoolshs.github.io` for the
+   deployed site). The repo includes `public/privacy.html`, served at `https://<domain>/<base>/privacy.html`.
+   The `drive.file` scope is non-sensitive, so publishing does not require verification.
+4. Copy `.env.example` to `.env` and set `VITE_GOOGLE_CLIENT_ID` and `VITE_GOOGLE_CLIENT_SECRET` to the client
+   ID and secret. Rebuild or restart the dev server. The client ID is a public identifier; the secret is
+   not truly secret in a static app, so keep both out of the repo and treat the secret as a build-time
+   value rather than a credential.
+5. For the GitHub Pages deployment, add repository secrets named `VITE_GOOGLE_CLIENT_ID` and
+   `VITE_GOOGLE_CLIENT_SECRET`. The deploy workflow passes them to the build step, so the deployed site is
+   configured too. If you skip this, the deployed site shows "Google Drive is not configured in this build."
+6. In the app, **Storage & backups → Google Drive → Sign in with Google Drive** opens Google's sign-in page.
+   The player signs in with their Google account and Google returns them to the app. The app uses the
+   `drive.file` scope, so it can only see the files it created. Backups land in a `Chordstand` folder in
+   their Drive.
+7. **Back up to Google Drive** uploads the current library; **Restore from Google Drive** lists the backups
+   and merges the chosen one back into the library.
+
+The sign-in uses the OAuth 2.0 authorization code flow with PKCE. Google's "Web application" client type
+still requires the client secret in the token exchange, so the secret is compiled into the app. The access
+token and refresh token are kept in `sessionStorage`; they disappear when the tab closes. Disconnect revokes
+the token and forgets it.
 
 Keep an external backup after a big import. Deleting the home-screen app, clearing Safari data or wiping the
 iPad removes the local library, and browser storage can be cleared by the OS under pressure.
@@ -218,6 +255,8 @@ src/
     parser.ts       OnSong + ChordPro parsing, key detection, round-trip export
     chords.ts       chord/key parsing, transposition, capo maths
     import.ts       zip/text reading, duplicate detection, backup export
+    backupShare.ts  share-sheet / download fallback for the backup zip
+    googleDrive.ts  optional Google Drive backup (OAuth + Drive REST API)
     onsongBackup.ts OnSong.sqlite3 extraction (lazy sql.js)
     ug.ts           Ultimate Guitar paste cleanup and search URL
     demo.ts         two public-domain demo charts
@@ -249,6 +288,9 @@ never rewrite the chart.
 - Mirroring conflicts are last-write-wins; a song deleted offline can be reintroduced by a peer's snapshot.
 - Ultimate Guitar cannot be fetched automatically for legal and technical reasons; the app links to their
   search and imports what you copy.
+- Google Drive backups need a one-time Google Cloud OAuth client setup by the app owner
+  (`VITE_GOOGLE_CLIENT_ID` + `VITE_GOOGLE_CLIENT_SECRET` + authorized origin and redirect URI). The refresh
+  token is kept in `sessionStorage`, so a new tab needs a fresh sign-in.
 - Inline `{key:}` / `{capo:}` changes are stored but ignored while rendering.
 - Chords-over-lyrics alignment is column-based, exactly like OnSong. Sloppy spacing in the source will show up
   as sloppy alignment.

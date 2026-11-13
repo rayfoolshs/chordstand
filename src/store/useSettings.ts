@@ -10,6 +10,7 @@ interface SettingsState {
   songCapos: Record<string, number>
   scrollSpeeds: Record<string, number>
   lastBackupAt?: number
+  lastDriveBackupAt?: number
   /** Chord ink chosen by the player; null follows the theme accent. */
   chordColor: string | null
   setFontSize: (size: number) => void
@@ -22,6 +23,7 @@ interface SettingsState {
   rememberCapo: (songId: string, capo: number) => void
   rememberSpeed: (songId: string, speed: number) => void
   markBackup: () => void
+  markDriveBackup: () => void
 }
 
 const STORAGE_KEY = 'chordstand.settings.v1'
@@ -37,6 +39,7 @@ interface Persisted {
   songCapos?: Record<string, number>
   scrollSpeeds?: Record<string, number>
   lastBackupAt?: number
+  lastDriveBackupAt?: number
   chordColor?: string | null
 }
 
@@ -66,6 +69,7 @@ export const useSettings = create<SettingsState>((set) => ({
   songCapos: restored.songCapos ?? {},
   scrollSpeeds: restored.scrollSpeeds ?? {},
   lastBackupAt: restored.lastBackupAt,
+  lastDriveBackupAt: restored.lastDriveBackupAt,
   chordColor: isHexColor(restored.chordColor) ? restored.chordColor : null,
 
   setFontSize: (fontSize) => set({ fontSize: clamp(fontSize, 14, 56) }),
@@ -81,6 +85,7 @@ export const useSettings = create<SettingsState>((set) => ({
   rememberSpeed: (songId, speed) =>
     set((state) => ({ scrollSpeeds: { ...state.scrollSpeeds, [songId]: speed } })),
   markBackup: () => set({ lastBackupAt: Date.now() }),
+  markDriveBackup: () => set({ lastBackupAt: Date.now(), lastDriveBackupAt: Date.now() }),
 }))
 
 useSettings.subscribe((state) => {
@@ -94,6 +99,7 @@ useSettings.subscribe((state) => {
       songCapos: state.songCapos,
       scrollSpeeds: state.scrollSpeeds,
       lastBackupAt: state.lastBackupAt,
+      lastDriveBackupAt: state.lastDriveBackupAt,
       chordColor: state.chordColor,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))

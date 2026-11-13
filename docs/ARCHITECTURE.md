@@ -8,11 +8,12 @@
                   │  React + Zustand + Dexie    │
                   └─────────────┬───────────────┘
                                 │
-              ┌─────────────────┼──────────────────┐
-              │                 │                  │
-        IndexedDB          localStorage       Service Worker
-      songs, setlists   appearance, keys,      app shell +
-                        capo, speed           hashed assets
+              ┌─────────────────┼──────────────────┬──────────────┐
+              │                 │                  │              │
+        IndexedDB          localStorage       Service Worker   Google Drive
+      songs, setlists   appearance, keys,      app shell +    (optional zip
+                        capo, speed,          hashed assets     backup)
+                        drive client ID
               │
               │  short-lived signalling (PeerJS) to pair
               ▼
@@ -25,7 +26,8 @@
 
 There is no application backend. The app is a static bundle and all data lives on-device. Pairing borrows the
 free public PeerJS signalling service for a few seconds; once the data channel is open, mirroring is direct
-between the devices and the service is no longer involved.
+between the devices and the service is no longer involved. Optional Google Drive backups are the only
+cloud feature: the app calls Google's API directly from the browser, with a user-supplied OAuth client ID.
 
 ## Stack
 
@@ -211,15 +213,41 @@ chrome on the others.
 - `BASE_URL` is injected into the service-worker registration for subpath deployments.
 - Storage is IndexedDB; Safari evicts script-writable storage for browser tabs after inactivity, but installed home-screen PWAs are exempt. Backups are still recommended.
 
+## Google Drive backups (optional)
+
+The app is still a static bundle. `src/core/googleDrive.ts` implements the OAuth 2.0 authorization code flow
+with PKCE:
+
+- The app owner sets a Google Cloud OAuth **Web application** client ID and secret in `VITE_GOOGLE_CLIENT_ID`
+  and `VITE_GOOGLE_CLIENT_SECRET` at build time. The client must authorize the app's origin and its redirect
+  URI (the app's own URL, without query or hash). The player never sees the client ID; they only see
+  **Sign in with Google Drive**.
+- Google's "Web application" client type requires the client secret in the token exchange, so the secret is
+  compiled into the app. It is not a true secret in a static app; it is a build-time value, not a credential.
+- `startDriveSignIn()` stores the client secret, a `code_verifier` and `state` in `sessionStorage`, then
+  navigates to Google's consent page.
+- `main.tsx` calls `handleDriveRedirect()` on startup. It reads the `code` and `state` from the URL, clears
+  the query string, exchanges the code at `oauth2.googleapis.com/token`, and stores the access and refresh
+  tokens in `sessionStorage`.
+- `ensureDriveToken()` refreshes the access token with the refresh token when it is near expiry, so the user
+  does not have to re-enter the consent page for every backup.
+- The `drive.file` scope only lets the app see files it created. The backup zip is uploaded as a
+  `multipart/related` body to a `Chordstand` folder in the user's Drive.
+- Restore downloads the zip and feeds it through the same `readImportFiles` pipeline as a local file, so a
+  Drive backup is validated exactly like a local one.
+
+No refresh token, access token or client secret is stored in the app's settings. The client ID and secret are
+build-time values; the tokens live in sessionStorage and are revoked on disconnect.
+
 ## File map
 
 ```
 src/
-  core/        types, parser, chords, import, OnSong backup, UG cleanup, bookmarklet bridge, demos
+  core/        types, parser, chords, import, backup share, Google Drive backup, OnSong backup, UG cleanup, bookmarklet bridge, demos
   store/       Dexie schema, app store, settings, theme engine
   hooks/       autoscroll, wake lock, fullscreen, pedal hotkeys
   sync/        message types, PeerJS link, mirror engine, manager/UI state
-  components/  Library, SongView, Setlists, Import, editors, sync dialog
+  components/  Library, SongView, Setlists, Import, editors, sync dialog, Drive backup
   styles/      single stylesheet driven by CSS variables
 docs/          build plan, architecture, testing, decisions
 scripts/       icon generation, service-worker asset injection

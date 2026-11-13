@@ -94,3 +94,21 @@ PWA, and is trivially mirrored to other devices.
 **Cost:** the browser's own chrome (Safari's toolbar) stays visible when running in a tab; the installed
 home-screen app has no browser chrome, so it looks properly full screen there. The mode must also keep safe-area
 insets in mind, which the stylesheet does.
+
+## ADR-010 — Google Drive backup via OAuth 2.0 + PKCE
+
+**Decision:** keep the app static and backend-free. Add an optional Google Drive backup that uses the OAuth 2.0
+authorization code flow with PKCE. The app owner sets a Google Cloud OAuth **Web application** client ID and
+secret at build time (`VITE_GOOGLE_CLIENT_ID` and `VITE_GOOGLE_CLIENT_SECRET`); the player only sees "Sign in
+with Google Drive". The app redirects to Google's consent page, exchanges the code for tokens, and talks to
+the Drive REST API directly.
+
+**Why:** the app has no server to proxy the Drive API. Google's "Web application" client type still requires
+the client secret in the token exchange, so the secret is compiled into the app. That is not a true secret in
+a static app, but it is the only way to use the authorization-code flow with a public SPA. The client ID is a
+public identifier; the secret is a build-time value, not a credential. The `drive.file` scope is deliberately
+narrow: the app only sees the files it created, so the rest of the user's Drive is untouched.
+
+**Cost:** the app owner must create a Google Cloud OAuth client and register the app's origin and redirect URI.
+The refresh token is stored in `sessionStorage`, so it is lost when the tab closes and the user must sign in
+again on a new tab. The app still has no background sync; the Drive backup is a manual, user-initiated action.
