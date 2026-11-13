@@ -1,12 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { Song } from '../core/types'
-import { DEMO_SONG, DEMO_SONG_TWO } from '../core/demo'
-import {
-  candidateFromText,
-  downloadText,
-  safeFileName,
-  songFromCandidate,
-} from '../core/import'
+import { downloadText, safeFileName } from '../core/import'
 import { songToOnsong } from '../core/parser'
 import { useSettings } from '../store/useSettings'
 import { appearanceLabel } from '../store/theme'
@@ -31,7 +25,6 @@ export function Library({
 }) {
   const songs = useStore((state) => state.songs)
   const setlists = useStore((state) => state.setlists)
-  const addSongs = useStore((state) => state.addSongs)
   const deleteSongs = useStore((state) => state.deleteSongs)
   const addToSetlist = useStore((state) => state.addToSetlist)
   const settings = useSettings()
@@ -87,15 +80,6 @@ export function Library({
     }
     return list
   }, [songs, query, book, sort])
-
-  const addDemo = () => {
-    const candidates = [DEMO_SONG, DEMO_SONG_TWO]
-      .map((text, index) => candidateFromText(index === 0 ? 'Amazing Grace.onsong' : 'Wagon Wheel.onsong', text, songs))
-      .filter((candidate) => !candidate.duplicateOf)
-      .map((candidate) => songFromCandidate(candidate))
-    if (candidates.length) void addSongs(candidates)
-    setLibraryMenu(false)
-  }
 
   const exportSong = (song: Song) => {
     downloadText(`${safeFileName(`${song.title}${song.artist ? ` - ${song.artist}` : ''}`)}.onsong`, songToOnsong(song))
@@ -209,9 +193,6 @@ export function Library({
             <button className="primary-button" onClick={onImport}>
               <Icon name="upload" size={18} />
               Import songs
-            </button>
-            <button className="ghost-button" onClick={addDemo}>
-              Add demo songs
             </button>
           </div>
           <p className="fine-print">Offline-first. Your charts never leave this device.</p>
@@ -406,10 +387,6 @@ export function Library({
               </button>
             </div>
           </div>
-          <button className="sheet-row" onClick={addDemo}>
-            <Icon name="music" size={18} />
-            Add demo songs
-          </button>
           <button
             className="sheet-row"
             onClick={() => {

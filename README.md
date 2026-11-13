@@ -49,6 +49,7 @@ workflow sets `PAGES_BASE` to the repository name, runs the tests, builds, and p
 - [Testing](docs/TESTING.md) — automated coverage, manual QA, multi-device checklist.
 - [Design decisions](docs/DECISIONS.md) — why local-first, why PeerJS, why no UG scraping.
 - [Changelog](docs/CHANGELOG.md) — what changed, release by release.
+- [Third-party notices](THIRD_PARTY_NOTICES.md) — licenses for the bundled open-source packages.
 
 ### Install on iPad
 
@@ -259,7 +260,6 @@ src/
     googleDrive.ts  optional Google Drive backup (OAuth + Drive REST API)
     onsongBackup.ts OnSong.sqlite3 extraction (lazy sql.js)
     ug.ts           Ultimate Guitar paste cleanup and search URL
-    demo.ts         two public-domain demo charts
   sync/
     protocol.ts     sync message types
     PeerLink.ts     PeerJS pairing and the peer data channel (lazy loaded)

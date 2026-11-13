@@ -5,6 +5,15 @@ Notable changes to Chordstand. The app is a static PWA deployed from `main`; eve
 
 ## Unreleased
 
+### Demo songs removed
+- The "Add demo songs" buttons and the bundled "Amazing Grace" and "Wagon Wheel" charts were removed. The
+  demo charts were copyrighted lyrics, and the app is meant to be imported from your own library.
+
+### Third-party notices
+- `THIRD_PARTY_NOTICES.md` lists the license and notice text for every bundled open-source package (React,
+  Dexie, PeerJS, sql.js, jsQR, etc.). The same file is served at `THIRD_PARTY_NOTICES.md` and linked from the
+  privacy page. Regenerate with `npm run notices`.
+
 ### Optional Google Drive backups
 - Storage & backups now has a **Google Drive** section. The player signs in with their Google account and the
   same backup zip is uploaded to a `Chordstand` folder in their Drive. The app stays static and backend-free.

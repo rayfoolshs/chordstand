@@ -21,8 +21,7 @@ Coverage:
 ## Manual smoke test (single device)
 
 ### Library and import
-- [ ] Empty state shows Import and Add demo songs.
-- [ ] Add demo songs → two songs appear.
+- [ ] Empty state shows Import.
 - [ ] Search by title, artist, lyric and tag works.
 - [ ] Book filter and sort modes work.
 - [ ] Import a `.onsong` file and a zip; preview shows the chart, key and duplicate flags.

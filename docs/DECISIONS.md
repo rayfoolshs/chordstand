@@ -112,3 +112,20 @@ narrow: the app only sees the files it created, so the rest of the user's Drive 
 **Cost:** the app owner must create a Google Cloud OAuth client and register the app's origin and redirect URI.
 The refresh token is stored in `sessionStorage`, so it is lost when the tab closes and the user must sign in
 again on a new tab. The app still has no background sync; the Drive backup is a manual, user-initiated action.
+
+## ADR-011 — Ship third-party notices with the app
+
+**Decision:** generate `THIRD_PARTY_NOTICES.md` from the production dependency tree and commit it, with a copy
+in `public/` so the built site serves it at `/THIRD_PARTY_NOTICES.md`. The privacy page links to it. Regenerate
+it with `npm run notices` when dependencies change.
+
+**Why:** the app bundles MIT and Apache-2.0 packages (React, Dexie, PeerJS, sql.js, jsQR, and their
+transitive dependencies). Both licenses require the copyright and permission notice to ship with copies of the
+software. A static site that minifies the bundle still distributes the code, so the notices have to be
+available to the people who receive the app. The app has no backend, so a plain file next to the bundle is the
+simplest place to put them.
+
+**Cost:** the notices file is generated, so it has to be regenerated when dependencies change. It is a large
+file (about 45 packages, roughly 74 KB of license text), and it is checked in rather than generated at deploy
+time so the deploy stays reproducible. The build does not verify that the file is current; a dependency bump
+without a `npm run notices` run leaves stale notices.

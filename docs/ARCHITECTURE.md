@@ -243,7 +243,7 @@ build-time values; the tokens live in sessionStorage and are revoked on disconne
 
 ```
 src/
-  core/        types, parser, chords, import, backup share, Google Drive backup, OnSong backup, UG cleanup, bookmarklet bridge, demos
+  core/        types, parser, chords, import, backup share, Google Drive backup, OnSong backup, UG cleanup, bookmarklet bridge
   store/       Dexie schema, app store, settings, theme engine
   hooks/       autoscroll, wake lock, fullscreen, pedal hotkeys
   sync/        message types, PeerJS link, mirror engine, manager/UI state
