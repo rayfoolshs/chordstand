@@ -1,6 +1,6 @@
 # Chordstand
 
-**Live:** <https://rayfoolshs.github.io/chordstand/>
+**Live:** <https://rayfoolshs.github.io/chordstand/> · **Version history:** [docs/CHANGELOG.md](docs/CHANGELOG.md)
 
 Created by **Ray Foo** · [www.rayfooproductions.com](https://www.rayfooproductions.com)
 
