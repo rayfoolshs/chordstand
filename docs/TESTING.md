@@ -3,7 +3,7 @@
 ## Automated
 
 ```bash
-npm test           # Vitest, 66 tests
+npm test           # Vitest, 69 tests
 npx tsc --noEmit   # strict typecheck
 npm run build      # typecheck + Vite build + service-worker asset injection
 ```
@@ -17,6 +17,7 @@ Coverage:
 | `src/core/ug.test.ts` | UG search URL, page-chrome removal, metadata retention, blank-line collapsing, clipboard chart detection |
 | `src/core/googleDrive.test.ts` | PKCE sign-in URL, redirect code exchange, state mismatch, Drive folder creation, upload, list, download and error mapping |
 | `src/sync/mirror.test.ts` | Host snapshot, merge by `updatedAt`, local edit/delete broadcasts, view broadcasts, no echo of remote applies, guest-to-guest relay, scroll/autoscroll/key-capo sync and replay |
+| `src/sync/PeerLink.test.ts` | Heartbeat ping/pong, close on a missing reply, and app messages reaching the mirror |
 
 ## Manual smoke test (single device)
 
@@ -136,10 +137,12 @@ Coverage:
 - [ ] Re-pair and confirm the libraries merge instead of duplicating.
 
 ### Failure cases
-- [ ] Turn Wi-Fi off on one device mid-session; the other reports a disconnect.
+- [ ] Turn Wi-Fi off on one device mid-session; the link goes quiet within ~15 s and the app reports a disconnect, then reconnects automatically when the network returns.
+- [ ] Run both devices on a phone hotspot; the heartbeat should keep the session alive and a hotspot blip should recover without a manual re-pair.
 - [ ] Join with a code nobody is hosting; the dialog says no session is hosting that code.
 - [ ] Join with no internet; the dialog says it could not reach the pairing service.
 - [ ] Stop the host; guests report the session ended and keep their data.
+- [ ] Tap **Cancel** in the dialog; the automatic retry stops.
 
 ## Environment note (important)
 

@@ -43,6 +43,11 @@ jobs:
           # OAuth client ID and secret from the Google Cloud project.
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           VITE_GOOGLE_CLIENT_SECRET: ${{ secrets.VITE_GOOGLE_CLIENT_SECRET }}
+          # Optional TURN relay for device mirroring. Leave the secrets unset
+          # to fall back to PeerJS's public TURN server.
+          VITE_TURN_URL: ${{ secrets.VITE_TURN_URL }}
+          VITE_TURN_USERNAME: ${{ secrets.VITE_TURN_USERNAME }}
+          VITE_TURN_CREDENTIAL: ${{ secrets.VITE_TURN_CREDENTIAL }}
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

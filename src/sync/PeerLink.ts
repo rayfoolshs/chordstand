@@ -12,7 +12,36 @@ async function loadPeer(): Promise<typeof import('peerjs').default> {
 const ID_PREFIX = 'chordstand-v1-'
 const CODE_LENGTH = 4
 
+/** How often to ping the peer and how long to wait for a reply. */
+const HEARTBEAT_MS = 5000
+const HEARTBEAT_TIMEOUT_MS = 15000
+
 export type LinkStatus = 'connecting' | 'connected' | 'disconnected' | 'failed'
+
+/**
+ * PeerJS's default config already ships STUN and a public TURN server. A phone
+ * hotspot can block that TURN, so a deployment can override it with
+ * VITE_TURN_URL / VITE_TURN_USERNAME / VITE_TURN_CREDENTIAL.
+ */
+const STUN_SERVERS: RTCIceServer[] = [{ urls: 'stun:stun.l.google.com:19302' }]
+
+function peerOptions(): { debug: number; config?: { iceServers: RTCIceServer[] } } {
+  const url = import.meta.env.VITE_TURN_URL
+  if (!url) return { debug: 0 }
+  return {
+    debug: 0,
+    config: {
+      iceServers: [
+        ...STUN_SERVERS,
+        {
+          urls: url,
+          username: import.meta.env.VITE_TURN_USERNAME,
+          credential: import.meta.env.VITE_TURN_CREDENTIAL,
+        },
+      ],
+    },
+  }
+}
 
 export function randomCode(): string {
   const max = 10 ** CODE_LENGTH
@@ -26,35 +55,76 @@ export function peerIdForCode(code: string): string {
 /**
  * One connection to another device. Mirrors the shape the mirror engine expects,
  * so it can treat a PeerJS data connection like any other peer link.
+ *
+ * A ping/pong heartbeat keeps the "connected" status honest: when the hotspot
+ * or the network drops the channel, the next ping goes unanswered and the link
+ * closes itself, so the manager can reconnect instead of mirroring into a dead
+ * channel.
  */
 export class PeerLink {
   onMessage?: (message: SyncMessage) => void
   onClose?: () => void
 
+  private closed = false
+  private lastPong = Date.now()
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null
+
   constructor(private conn: DataConnection) {
     conn.on('data', (data) => {
       const message = normalise(data)
-      if (message) this.onMessage?.(message)
+      if (!message) return
+      if (message.t === 'ping') {
+        this.write({ t: 'pong' })
+        return
+      }
+      if (message.t === 'pong') {
+        this.lastPong = Date.now()
+        return
+      }
+      this.onMessage?.(message)
     })
-    conn.on('close', () => this.onClose?.())
-    conn.on('error', () => this.onClose?.())
+    conn.on('close', () => this.close())
+    conn.on('error', () => this.close())
+    this.startHeartbeat()
   }
 
   get open(): boolean {
-    return this.conn.open
+    return !this.closed && this.conn.open
   }
 
   send(message: SyncMessage): void {
-    if (this.conn.open) {
-      try {
-        this.conn.send(message)
-      } catch {
-        // The connection closed mid-send; the close handler will clean up.
-      }
+    this.write(message)
+  }
+
+  private write(message: SyncMessage): void {
+    if (this.closed || !this.conn.open) return
+    try {
+      this.conn.send(message)
+    } catch {
+      // The connection closed mid-send; the close handler will clean up.
+      this.close()
     }
   }
 
+  private startHeartbeat(): void {
+    this.heartbeatTimer = setInterval(() => {
+      if (this.closed) return
+      if (Date.now() - this.lastPong > HEARTBEAT_TIMEOUT_MS) {
+        this.close()
+        return
+      }
+      this.write({ t: 'ping' })
+    }, HEARTBEAT_MS)
+  }
+
   close(): void {
+    if (this.closed) return
+    this.closed = true
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer)
+      this.heartbeatTimer = null
+    }
+    const onClose = this.onClose
     this.onMessage = undefined
     this.onClose = undefined
     try {
@@ -62,6 +132,7 @@ export class PeerLink {
     } catch {
       // Already closed.
     }
+    onClose?.()
   }
 }
 
@@ -99,7 +170,7 @@ export function hostWithCode(
 
         const tryCode = (code: string) => {
           attempts += 1
-          const peer = new PeerCtor(peerIdForCode(code), { debug: 0 })
+          const peer = new PeerCtor(peerIdForCode(code), peerOptions())
           let settled = false
 
           peer.on('open', () => {
@@ -111,6 +182,16 @@ export function hostWithCode(
             const link = new PeerLink(conn)
             if (conn.open) onConnection(link)
             else conn.on('open', () => onConnection(link))
+          })
+
+          peer.on('disconnected', () => {
+            // The signalling socket dropped; the data channel may still be up.
+            // Reconnect so the host keeps its code and can accept new devices.
+            try {
+              peer.reconnect()
+            } catch {
+              // The peer is already gone; the next error will report it.
+            }
           })
 
           peer.on('error', (error) => {
@@ -125,9 +206,13 @@ export function hostWithCode(
               reject(new Error(describe(type)))
               return
             }
-            // Already hosting: report but keep the session alive where possible.
             if (type === 'network' || type === 'server-error' || type === 'socket-error') {
-              onFailure('Lost contact with the pairing service. Other devices cannot join until it returns.')
+              onFailure('Lost contact with the pairing service. Reconnecting…')
+              try {
+                peer.reconnect()
+              } catch {
+                // The peer is already gone; the next error will report it.
+              }
             }
           })
         }
@@ -142,7 +227,7 @@ export function joinWithCode(code: string): Promise<{ link: PeerLink; peer: Peer
   return loadPeer().then(
     (PeerCtor) =>
       new Promise<{ link: PeerLink; peer: Peer }>((resolve, reject) => {
-        const peer = new PeerCtor({ debug: 0 })
+        const peer = new PeerCtor(peerOptions())
         let settled = false
 
         const fail = (message: string) => {
@@ -151,6 +236,14 @@ export function joinWithCode(code: string): Promise<{ link: PeerLink; peer: Peer
           peer.destroy()
           reject(new Error(message))
         }
+
+        peer.on('disconnected', () => {
+          try {
+            peer.reconnect()
+          } catch {
+            // The peer is already gone; the next error will report it.
+          }
+        })
 
         peer.on('open', () => {
           const conn = peer.connect(peerIdForCode(code), { reliable: true })
@@ -180,6 +273,16 @@ export function joinWithCode(code: string): Promise<{ link: PeerLink; peer: Peer
           const type = (error as { type?: string }).type
           if (type === 'peer-unavailable') {
             fail('No session is hosting that code. Check the code on the other iPad.')
+            return
+          }
+          if (settled && (type === 'network' || type === 'socket-error' || type === 'server-error')) {
+            // The connection is up; the signalling socket dropped. Reconnect so
+            // the peer keeps the data channel and the heartbeat stays alive.
+            try {
+              peer.reconnect()
+            } catch {
+              // The peer is already gone; the next error will report it.
+            }
             return
           }
           fail(describe(type))

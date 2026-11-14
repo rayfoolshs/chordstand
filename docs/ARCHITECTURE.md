@@ -166,6 +166,10 @@ chrome on the others.
 
 `src/sync/PeerLink.ts` wraps PeerJS (loaded lazily, so its ~120 kB never enters the main bundle) in a small `MirrorLink` interface, which is all the merge engine needs. There is no hand-written SDP, no clipboard shuttle, and no second scan step.
 
+The link pings its peer every 5 seconds and closes itself when no reply arrives for 15 seconds. That heartbeat makes the "connected" status honest: a dead channel (a phone hotspot dropping, a Wi-Fi hand-off, a sleeping device) is noticed and torn down, and the manager retries with a short exponential backoff (1 s up to 15 s). PeerJS's own `disconnected` event is handled by reconnecting the signalling socket, and the browser's `online`/`offline` events trigger the same retry. "Cancel" in the dialog turns the automatic retry off.
+
+PeerJS's default ICE config already includes a public TURN server. If a phone hotspot blocks it, set `VITE_TURN_URL`, `VITE_TURN_USERNAME` and `VITE_TURN_CREDENTIAL` at build time to point the app at a relay you control.
+
 4-digit codes are chosen for readability when read aloud or typed on a stage. They are namespaced to Chordstand and collide harmlessly (the host just takes another), but they are not secrets — anyone who knows the code can join while the host is hosting.
 
 ### Messages
@@ -182,7 +186,11 @@ chrome on the others.
 { t:'autoscroll', songId, active, speed }
 { t:'transpose', songId, key, capo }
 { t:'fullscreen', active }
+{ t:'ping' }
+{ t:'pong' }
 ```
+
+`ping` and `pong` are consumed by `PeerLink` for the heartbeat and never reach the mirror engine.
 
 ### Merge rules
 
@@ -204,6 +212,7 @@ chrome on the others.
 - No tombstones: a song deleted while offline can be reintroduced by the other device's snapshot.
 - Conflicts are last-write-wins by `updatedAt`; there is no merge UI.
 - Every app must stay open; there is no background sync.
+- A phone hotspot is a carrier-grade NAT. The public TURN server is best-effort; if the hotspot blocks it, set a TURN server at build time. The automatic reconnect keeps the session alive but cannot create a path the network refuses.
 
 ## PWA and offline
 

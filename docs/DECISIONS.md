@@ -129,3 +129,22 @@ simplest place to put them.
 file (about 45 packages, roughly 74 KB of license text), and it is checked in rather than generated at deploy
 time so the deploy stays reproducible. The build does not verify that the file is current; a dependency bump
 without a `npm run notices` run leaves stale notices.
+
+## ADR-012 — Heartbeat and automatic reconnect for mirroring
+
+**Decision:** `PeerLink` sends a `ping` every 5 seconds and closes the link when no `pong` arrives for 15
+seconds. The manager retries a dropped link with exponential backoff (1 s, 2 s, 4 s … up to 15 s), and
+reconnects the PeerJS signalling socket on `disconnected` and `error`. The browser's `online`/`offline`
+events trigger the same retry. "Cancel" in the dialog disables the automatic retry. PeerJS's default ICE
+config already includes a public TURN server; `VITE_TURN_URL`, `VITE_TURN_USERNAME` and
+`VITE_TURN_CREDENTIAL` override it with a relay the operator controls.
+
+**Why:** PeerJS's data channel does not report a dead link reliably. On a phone hotspot, or when the host
+device's Wi-Fi blips, the app kept showing "Connected" while the mirroring broadcasts went into a dead
+channel. The heartbeat makes the status honest, and the retry lets the session recover instead of ending.
+The default TURN server is shared and best-effort, so a hotspot that blocks it needs an explicit relay.
+
+**Cost:** the heartbeat is a small message every 5 seconds per device, which is negligible on a hotspot but
+does keep the radio awake. The retry can reconnect a device the user intentionally closed, so the manual
+"Cancel" path has to clear the automatic flag. The heartbeat is a link-level concern; it does not change the
+mirroring protocol or the merge rules.

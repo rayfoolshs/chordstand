@@ -156,6 +156,11 @@ Not on Wi-Fi? The mirroring is peer-to-peer, so it works on a hotspot or any net
 reach each other. If the network blocks device-to-device traffic (guest Wi-Fi, client isolation), the
 handshake will not complete — the app reports that rather than hanging.
 
+The link pings its peer every 5 seconds. If a reply stops (a hotspot blip, a Wi-Fi hand-off, a sleeping
+device), the app notices within about 15 seconds and reconnects automatically, so a transient drop does not
+end the session. PeerJS ships a public TURN server; if a hotspot blocks it, set `VITE_TURN_URL`,
+`VITE_TURN_USERNAME` and `VITE_TURN_CREDENTIAL` at build time to use a relay you control.
+
 Four digits are chosen so a code can be read aloud on stage. They are namespaced to Chordstand and a taken
 code is re-rolled automatically, but they are **not a secret**: anyone who knows the code can join while the
 host is hosting.

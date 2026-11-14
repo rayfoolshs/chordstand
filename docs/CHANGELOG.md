@@ -5,6 +5,15 @@ Notable changes to Chordstand. The app is a static PWA deployed from `main`; eve
 
 ## Unreleased
 
+### Mirroring survives a hotspot blip
+- `PeerLink` now pings its peer every 5 seconds and closes the link when no reply arrives for 15 seconds, so
+  a dead channel is reported as disconnected instead of silently mirroring into nothing.
+- The sync manager reconnects automatically with exponential backoff (1 s up to 15 s), reconnects the
+  PeerJS signalling socket on `disconnected`/`error`, and retries when the browser comes back online. The
+  dialog's **Cancel** still turns the automatic retry off.
+- Optional `VITE_TURN_URL`, `VITE_TURN_USERNAME` and `VITE_TURN_CREDENTIAL` override PeerJS's public TURN
+  server for a phone hotspot that blocks it.
+
 ### Demo songs removed
 - The "Add demo songs" buttons and the bundled "Amazing Grace" and "Wagon Wheel" charts were removed. The
   demo charts were copyrighted lyrics, and the app is meant to be imported from your own library.
